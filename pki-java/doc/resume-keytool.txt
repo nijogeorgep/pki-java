@@ -32,6 +32,7 @@ keytool -import -file mykey.cer -alias aliaskey1 -keystore mykeystore.ks
 ! Si aucun alias n'est specifé c'est le nom du fichier qui est utilisé
 ! (Il me semble que pour ajouter un certificat en tant que CA il faut ajouter l'option -trustcacerts
 
+
 - Créer une CSR pour une clé donnée
 
 keytool -certreq -alias aliaskey2 -file csr.pem -keystore mykeystore.ks 
