@@ -1,0 +1,43 @@
+Je ne crois pas que l'on puisse juste créer un keystore, il se crée automatiquement à la génération d'une clé ou autre.
+
+Voici quelques commandes :
+
+- Générer une pair de clé RSA valide pour 365 jours, dans un keystore que l'on appel mykeystore.ks
+
+keytool -genkey -alias aliaskey1 -keyalg RSA -keysize 2048 -validity 365 -keystore mykeystore.ks
+
+
+
+- Lister toutes les entrées d'un keystore
+
+keytool -list -keystore mykeystore.ks -v
+
+
+
+- Exporter un Certificat au format cer
+
+keytool -export -alias aliaskey1 -file mykey.cer -keystore mykeystore.ks 
+
+
+
+- Supprimer un certificat d'un keystore
+
+keytool -delete -alias aliaskey1 -keystore mykeystore.ks 
+
+
+
+-Import une clé ou un certificat
+
+keytool -import -file mykey.cer -alias aliaskey1 -keystore mykeystore.ks 
+! Si aucun alias n'est specifé c'est le nom du fichier qui est utilisé
+! (Il me semble que pour ajouter un certificat en tant que CA il faut ajouter l'option -trustcacerts
+
+- Créer une CSR pour une clé donnée
+
+keytool -certreq -alias aliaskey2 -file csr.pem -keystore mykeystore.ks 
+
+
+
+- Changer le mot de passe d'un keystore
+
+keytool -storepasswd -keystore mykeystore.ks
