@@ -71,7 +71,17 @@ public class test_signature_verif {
 		    
 		    if (signer.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider("BC").build(cert)))
 		    {
-		        System.out.println("Yuouhou");
+				System.out.println("Is Signature valid : " + "YES");
+				System.out.println("Digest : " + signer.getContentDigest());
+				System.out.println("Enc Alg Oid : " + signer.getEncryptionAlgOID());
+				System.out.println("Digest Alg Oid : " + signer.getDigestAlgOID());
+				System.out.println("Signature : " + signer.getSignature());
+				
+				System.out.println("Signer Info: \n");
+				
+				ASN1Sequence seq = (ASN1Sequence) ASN1Sequence.fromByteArray(signer.toASN1Structure().getEncoded());
+				System.out.println(seq.toString());
+		        
 		    }   
 		}
 	}
