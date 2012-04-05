@@ -16,6 +16,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 
 import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.util.ASN1Dump;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.CMSSignedData;
@@ -82,6 +83,7 @@ public class test_signature_verif {
 				ASN1Sequence seq = (ASN1Sequence) ASN1Sequence.fromByteArray(signer.toASN1Structure().getEncoded());
 				System.out.println(seq.toString());
 		        
+				System.out.println(ASN1Dump.dumpAsString(signer.toASN1Structure()));
 		    }   
 		}
 	}
