@@ -20,11 +20,14 @@ import com.sun.org.apache.xpath.internal.operations.And;
 public class cert_path_validation
 {
     public static void main(String[] args) throws Exception {
+    	
+    	boolean VERIFIED_BY_PATH_CHECKER = false;
+    	
     	Security.addProvider(new BouncyCastleProvider());
 		
     	//--- Classic stuff to retrieve Certificates
 		KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-		ks.load(new FileInputStream("src/Playground/test_keystore_alt.ks"), "passwd".toCharArray());
+		ks.load(new FileInputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
 
 		X509Certificate rootCert = (X509Certificate) ks.getCertificate("CA_Certificate");
 		X509Certificate interCert = (X509Certificate) ks.getCertificate("CA_Intermediaire_Certificate");
@@ -50,9 +53,10 @@ public class cert_path_validation
         list.add(rootCert);
         list.add(interCert);
         list.add(endCert);
-        //Whitout Checker
-        list.add(rootCRL);
-        list.add(interCRL);
+        if (!(VERIFIED_BY_PATH_CHECKER)) {
+        	list.add(rootCRL);
+        	list.add(interCRL);
+        }
         //-------------------------
         
         CollectionCertStoreParameters params = new CollectionCertStoreParameters( list );
@@ -76,10 +80,12 @@ public class cert_path_validation
         CertPathValidator validator = CertPathValidator.getInstance("PKIX", "BC");
         PKIXParameters    param = new PKIXParameters(trust);//peut utiliser keystore
         
-        // For PathChecker
-        //param.addCertPathChecker(new PathChecker(rootPair, rootCert, revokedSerialNumber));
-        //tell the CertPathValidator implementation not to expect to use CRLs, as some other revocation mechanism has been enabled
-        //param.setRevocationEnabled(false);
+        if (VERIFIED_BY_PATH_CHECKER) {
+	        // For PathChecker
+	        param.addCertPathChecker(new PathChecker(rootCert, revokedSerialNumber));
+	        //tell the CertPathValidator implementation not to expect to use CRLs, as some other revocation mechanism has been enabled
+	        param.setRevocationEnabled(false);
+        }
         
         param.addCertStore(store);
         param.setDate(new Date());
