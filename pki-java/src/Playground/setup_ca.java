@@ -81,7 +81,7 @@ public class setup_ca {
 		
 		// Pour le moment on autorise au CA que la signature de certificat et la signature de CRL (a priori il ne fera rien d'autre)
 		KeyUsage keyUsage = new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
-		builder.addExtension(X509Extension.keyUsage, false, keyUsage);
+		builder.addExtension(X509Extension.keyUsage, true, keyUsage); //KeyUsage doit être critique
 		
 		ExtendedKeyUsage extendedKeyUsage  = new ExtendedKeyUsage(KeyPurposeId.anyExtendedKeyUsage);
 		builder.addExtension(X509Extension.extendedKeyUsage, false, extendedKeyUsage);
@@ -111,28 +111,28 @@ public class setup_ca {
 		JcaX509v3CertificateBuilder builder  = null;
 		
 		//X500Name subjectFormated = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, subject).build();
-		X500Principal subjectFormated = new X500Principal("CN="+subject);
+		X500Name subjectFormated = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, subject).build();
 		X500Name issuerFormated = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, issuerName).build();
-		builder  = new JcaX509v3CertificateBuilder(caCert, serialNumber, notBefore, notAfter, subjectFormated, keyPair.getPublic());
+		builder  = new JcaX509v3CertificateBuilder(caCert, serialNumber, notBefore, notAfter, new X500Principal("CN="+subject), keyPair.getPublic());
 
 		//On crée le signataire qui sera la clé privé du CA
 		ContentSigner contentSigner = new JcaContentSignerBuilder("SHA1withRSA").setProvider("BC").build(caKey);//our own key
 		
 		// Pour le moment on autorise au CA que la signature de certificat et la signature de CRL (a priori il ne fera rien d'autre)
 		KeyUsage keyUsage = new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
-		builder.addExtension(X509Extension.keyUsage, false, keyUsage);
-		
+		builder.addExtension(X509Extension.keyUsage, true, keyUsage); //KeyUsage doit être critique !
+		/*
 		ExtendedKeyUsage extendedKeyUsage  = new ExtendedKeyUsage(KeyPurposeId.anyExtendedKeyUsage);
 		builder.addExtension(X509Extension.extendedKeyUsage, false, extendedKeyUsage);
 		
 		GeneralNames subjectAltName = new GeneralNames(new GeneralName(GeneralName.rfc822Name, subject));
 		builder.addExtension(X509Extension.subjectAlternativeName, false, subjectAltName);
-		
+		*/
 		SubjectKeyIdentifier subjectKeyIdentifier = new JcaX509ExtensionUtils().createSubjectKeyIdentifier(keyPair.getPublic());
 		builder.addExtension(X509Extension.subjectKeyIdentifier, false, subjectKeyIdentifier);
 		
 		// En +
-		builder.addExtension(X509Extension.basicConstraints, true, new BasicConstraints(0));
+		builder.addExtension(X509Extension.basicConstraints, true, new BasicConstraints(0)); //doit aussi être critique
 		builder.addExtension(X509Extension.authorityKeyIdentifier, false, new JcaX509ExtensionUtils().createAuthorityKeyIdentifier(caCert));
 		
 		X509CertificateHolder holder = builder.build(contentSigner);
@@ -162,13 +162,15 @@ public class setup_ca {
 	    AsymmetricKeyParameter parameterCa = PrivateKeyFactory.createKey(caPrivate.getEncoded());
 	    SubjectPublicKeyInfo keyInfo = inputCSR.getSubjectPublicKeyInfo();
 
+	    Date notbefore = new Date(System.currentTimeMillis());
+	    Date notafter = new Date(System.currentTimeMillis() + 30 * 365 * 24 * 60 * 60 * 1000);
 	    
-	    X509v3CertificateBuilder myCertificateGenerator = new X509v3CertificateBuilder(new X500Name(caPublic.getIssuerDN().getName()),
-	    																																new BigInteger("1"),
-	    																																new Date(System.currentTimeMillis()),
-	    																																new Date(System.currentTimeMillis() + 30 * 365 * 24 * 60 * 60 * 1000),
-	    																																inputCSR.getSubject(),
-	    																																keyInfo);
+	    X509v3CertificateBuilder myCertificateGenerator = new X509v3CertificateBuilder(new X500Name(caPublic.getSubjectDN().getName()), new BigInteger("1"), notbefore, notafter, inputCSR.getSubject(),	keyInfo);
+	    
+	    //JcaX509v3CertificateBuilder myCertificateGenerator = new JcaX509v3CertificateBuilder(caPublic, new BigInteger("1"), notbefore, notafter, new X500Principal("CN="+inputCSR.getSubject().toString()), caCert);
+	    
+	    //builder  = new JcaX509v3CertificateBuilder(caCert, serialNumber, notBefore, notAfter, new X500Principal("CN="+subject), keyPair.getPublic());
+	    
 	    //A modifier mettre le classique BcRSA ContentSigner ...
 	    ContentSigner sigGen = new BcRSAContentSignerBuilder(sigAlgId, digAlgId).build(parameterCa);        
 	    
@@ -240,7 +242,7 @@ public class setup_ca {
 		//Crée le CA autosigné
 		KeyPair		keyPairInt = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 		try {
-			X509Certificate intCert = createSignedCertificate("Robin Corp CA", "CA Intermediaire", keyPairInt, caCert, keyPair.getPrivate()); //Un peu dégeulasse mais pour le test
+			X509Certificate intCert = createSignedCertificate("CA Root", "CA Intermediaire", keyPairInt, caCert, keyPair.getPrivate()); //Un peu dégeulasse mais pour le test
 			//Bizarre qu'il n'y ai pas besoin de mettre le même issuer
 			
 			//Ajout le certificat et la clé privé du CA dans le keystore
@@ -274,6 +276,7 @@ public class setup_ca {
 			X509Certificate personne1_certificat = retrieveCertificateFromCSR(personne1_csr, privInt, pubInt);
 			
 			//X509Certificate personne1_certificat = createSignedCertificate("CA Intermediaire", "Test End Certificate", keyPairPersonne1, pubInt, privInt);
+			
 			
 			//Ajout le certificat et la clé privé de personne1
 			ks.setCertificateEntry("personne1_certificat", personne1_certificat);
