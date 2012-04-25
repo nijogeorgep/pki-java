@@ -5,3 +5,6 @@ LDAP_PORT=389
 LDAP_ADMIN_DN=cn=admin,dc=pkirepository,dc=org
 LDAP_PASS=PKICrypto
 USERS_BASE_DN=ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org
+
+#ALIAS Keystore
+ALIAS=aliaskey1
