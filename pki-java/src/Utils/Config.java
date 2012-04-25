@@ -9,7 +9,7 @@ public class Config {
 
 	public static String get(String attribute, String default_val) throws IOException {
 		Properties prop = new Properties();
-	    InputStream is = new FileInputStream("config");
+	    InputStream is = new FileInputStream("src/Config/config");
 
 	    prop.load(is);
 
