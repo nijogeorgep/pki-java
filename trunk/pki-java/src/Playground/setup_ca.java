@@ -142,7 +142,8 @@ public class setup_ca {
 	
 	
 	public static PKCS10CertificationRequest generate_csr(String name, KeyPair kp) throws NoSuchAlgorithmException, OperatorCreationException  {
-        KeyPair keys = kp;
+	      Security.addProvider(new BouncyCastleProvider());  
+	      KeyPair keys = kp;
         
         X500Name subjectName = new X500Name("CN="+name);
        // PKCS10CertificationRequest kpGen = new PKCS10CertificationRequest("SHA1withRSA",keys.getPublic(),	null,	keys.getPrivate()); 

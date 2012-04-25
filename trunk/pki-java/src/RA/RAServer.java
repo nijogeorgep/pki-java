@@ -1,5 +1,8 @@
 package RA;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -13,12 +16,16 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+
+
 public class RAServer {
 
 	ServerSocketChannel s;			//server socket
 	ByteBuffer masterBuffer;		//buffer used to store temporarily bytes read in sockets
 	Selector sel;
 	SelectionKey keyserver;			//SelectionKey of the server
+	
 	
     public static void main(String[] args) {
         try {
@@ -33,7 +40,7 @@ public class RAServer {
     
 	public RAServer() throws IOException, InterruptedException {
 		this.s = ServerSocketChannel.open();
-		this.s.socket().bind(new InetSocketAddress(5555));		//arbitrarily set to 5555
+		this.s.socket().bind(new InetSocketAddress(7000));		//arbitrarily set to 5555
 		this.s.configureBlocking(false);
 		this.masterBuffer = ByteBuffer.allocate(4096);
 		
@@ -67,49 +74,102 @@ public class RAServer {
 					if(sk == this.keyserver && sk.isAcceptable()) {  // sk == this.keyserver is optionnal because there's just the server registered in accept
 						SocketChannel client = ((ServerSocketChannel)sk.channel()).accept();
 						client.configureBlocking(false);										//configure client in non-blocking
-						client.register(this.sel, SelectionKey.OP_READ); //register the client in READ with the given attachment (no need to do key.attach)
+						BlockingQueue<ByteBuffer> bbq = new LinkedBlockingQueue<ByteBuffer>() ;
+						client.register(this.sel, SelectionKey.OP_READ,bbq); //register the client in READ with the given attachment (no need to do key.attach)
 						// ## ! It's just above to put an attachment to the key if needed ! (client.register(this.sel, SelectionKey.OP_READ,ATTACHMENT);
 					}
 					
 					if ( sk.isReadable()) {
 						SocketChannel client =  (SocketChannel) sk.channel(); //gather the socket that triggered the read event
+						
+            this.masterBuffer.clear(); // clear the main buffer and read the
+                                       // client message.
+            try
+            {
+              int byteread = client.read(this.masterBuffer);
+              if (byteread == -1)
+              {
+                client.close();
+                continue; // avoid an CancelledKeyexception (because if we close client the key (sk) is not valid anymore and
+                          // if(sk.isWritable()) will raise exception)
+              }
+              else
+              {
+                
+                ((BlockingQueue<ByteBuffer>) sk.attachment()).add(ByteBuffer.wrap(this.readBuff(byteread))); //add the bytebuffer in the client BlockingQueue
+                sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE);
 
-                        this.masterBuffer.clear(); // clear the main buffer and read the client message.
-                        try {
-                            int byteread = client.read(this.masterBuffer);
-                            if (byteread == -1) {
-                                client.close();
-                                continue; // avoid an CancelledKeyexception (because if we close client the key (sk) is not valid anymore and if(sk.isWritable()) will raise exception)
-                            }
-                            else {
-                                /* ############# TODO #############
-                                 * Par convention on décide que le CA n'accepte que les connections du RA donc uns fois par connection on doit :
-                                 * - Receptionner un message signé et le vérifier avec le certificat du RA (qui doit se trouver dans notre keystore).
-                                 * Attention: tout ca ne doit se faire qu'un fois par connection (il est donc peut être bon de passer la selectionkey en writable
-                                 * En cas d'échec on ferme la socket
-                                 * Si tout est ok on receptionne la requete du RA qui peut être : signature d'une CSR, signature d'un révocation (et peut être d'autres trucs je sais pas)
-                                 * L'ideal serait que le CA receptionne le truc a signer et détecte dynamiquement si c'est une CSR ou une révocation (ou autre)
-                                 *###############################*/
-                            	
-                                // play with attachment etc..
-                                //sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE);
-                            }						
-                        } 
-                        catch (IOException e) {
-                            System.err.println("Client closed unexpectedly!");
-                            client.close();
-                            continue;
-                        }
-					}
+                //  byte [] lu =  readBuff(byteread);
+               // System.out.println("coucou : " + new BigInteger(lu)) ;
+               // System.out.println("coucou : " + new String(lu)) ;
+                //PKCS10CertificationRequest certif = new PKCS10CertificationRequest(readBuff(byteread));
+              
+                //certif.toString();
+
+                /*
+                 * ############# TODO ############# Par convention on décide
+                 * que le CA n'accepte que les connections du RA donc uns fois
+                 * par connection on doit : - Receptionner un message signé et
+                 * le vérifier avec le certificat du RA (qui doit se trouver
+                 * dans notre keystore). Attention: tout ca ne doit se faire
+                 * qu'un fois par connection (il est donc peut être bon de
+                 * passer la selectionkey en writable En cas d'échec on ferme
+                 * la socket Si tout est ok on receptionne la requete du RA qui
+                 * peut être : signature d'une CSR, signature d'un révocation
+                 * (et peut être d'autres trucs je sais pas) L'ideal serait que
+                 * le CA receptionne le truc a signer et détecte dynamiquement
+                 * si c'est une CSR ou une révocation (ou autre)
+                 * ###############################
+                 */
+
+                // play with attachment etc..
+                // sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE);
+              }
+            }
+            catch (IOException e)
+            {
+              System.err.println("Client closed unexpectedly!");
+              client.close();
+              continue;
+            }
+          }
 					
-					if (sk.isWritable()) {
+          if (sk.isWritable())
+          {
+            System.out.println("en mode writable");
+            BlockingQueue<ByteBuffer> bq = ((BlockingQueue<ByteBuffer>) sk.attachment());
+            while (!(bq.isEmpty()))
+            {
+              System.out.println("ca boucle pour moi");
+              byte[] lu = null ;
+              while(!bq.isEmpty())
+              {
+                lu = ((ByteBuffer) bq.take()).array();
+                
+                if(new String(lu) != null)
+                {
+                  System.out.println("t'es un zero");
+                  System.out.println(new String(lu));
+                }
+                // traitement pwd
+                if(new BigInteger(lu)!=null)
+                {
+                  System.out.println("Zero comme Heros");
+                  System.out.println(new BigInteger(lu));
+                }
+                // traitement csr ou bigint
+              }
+             
+              // System.out.println("coucou : " + new BigInteger(lu)) ;
+              // System.out.println("coucou : " + new String(lu)) ;
+            }
 
-						
-						
-						// do whatever you want, play with attachment etc..
-						//sk.interestOps(SelectionKey.OP_READ); //set back the client in read mode
-						
-					}
+            sk.interestOps(SelectionKey.OP_READ); 
+            // do whatever you want, play with attachment etc..
+            // sk.interestOps(SelectionKey.OP_READ); //set back the client in
+            // read mode
+
+          }
 				}
 				
 			}
