@@ -1,4 +1,4 @@
-package Playground;
+package Ldap;
 
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -26,6 +26,9 @@ public class LDAP {
 	public LDAP() { }
 	
 	public void init(String url) throws NamingException {
+	/*
+	 *  Se connect a l'url envoyé en paramètre en tant qu' Anonymous
+	 */
 		Hashtable env = new Hashtable();
 		env.put(Context.INITIAL_CONTEXT_FACTORY,  "com.sun.jndi.ldap.LdapCtxFactory");
 		env.put(Context.PROVIDER_URL, url);
@@ -34,7 +37,14 @@ public class LDAP {
 
 	}
 	
+	public DirContext getContext() {
+		return ctx;
+	}
+	
 	public void initAuth(String url, String principal, String credential) throws NamingException {
+	/*
+	 * Se connect a l'url LDAP avec le login mot de passe envoyé en paramètre
+	 */
 		Hashtable env = new Hashtable(11);
 		env.put(Context.INITIAL_CONTEXT_FACTORY,  "com.sun.jndi.ldap.LdapCtxFactory");
 		env.put(Context.PROVIDER_URL, url);
@@ -48,11 +58,17 @@ public class LDAP {
 	}
 	
 	public boolean close() throws NamingException {
+	/*
+	 * Ferme la connexion au LDAP
+	 */
 		ctx.close();
 		return true;
 	}
 	
 	public void searchAllAttributs(String dn, String attid, String value) throws NamingException {
+	/*
+	 * Affiche tout les attributs correspondant à la requete
+	 */
 	    Attributes matchAttrs = new BasicAttributes(true); // ignore case
 	    matchAttrs.put(new BasicAttribute(attid, value));
 	    NamingEnumeration answer;
@@ -71,7 +87,17 @@ public class LDAP {
 	    }
 	}
 	
+	public Object getAttribute(String dnBase, String filter, String att) throws NamingException {
+		DirContext o = (DirContext) ctx.lookup(filter+"," + dnBase);
+	      Attributes attributes = o.getAttributes("");
+	      return attributes.get(att).get();
+	}
+	
+	
 	public void searchAttribute(String dnBase, String filter, String att) throws NamingException {
+	/*
+	 * Affiche l'attribut demandé pour chaque entrée correspondant au filtre
+	 */
 		//Options de recherche
 		SearchControls constraints = new SearchControls();
 		constraints.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -100,17 +126,17 @@ public class LDAP {
 			}
 		}
 	}
-	
+	/*
 	public void addObject() throws NamingException {
 	      //Apartment objet = new Apartment("12","valeur1");  //L'objet peut être n'importe quel objet qui implémente serializable
 	      //ctx.bind("cn=monobject,ou=People,dc=pkirepository,dc=org", objet); 
 	}
 	
-	public void recuObject() throws NamingException {
+	public void recupObject() throws NamingException {
         String objet = (String) ctx.lookup("cn=monobject,ou=People,dc=pkirepository,dc=org"); 
 	}
-	
-	public void modifAttribute(int operation,String dnBase, String attName, String value) throws NamingException {
+	*/
+	public void modifAttribute(int operation,String dnBase, String attName, Object value) throws NamingException {
         Attributes attributes = new BasicAttributes(true); 
         Attribute attribut = new BasicAttribute(attName); 
         attribut.add(value); 
@@ -140,28 +166,7 @@ public class LDAP {
 		ctx.rename(oldDn,newDn);
 	}
 	
-	public void createNewUser(String dn,String username, String surname, String givenName) throws NamingException {
-		      String distinguishedName = "uid=" + username +";"+ dn;
-		      Attributes newAttributes = new BasicAttributes(true);
-		      Attribute oc = new BasicAttribute("objectclass");
-		      oc.add("top");
-		      oc.add("person");
-		      //oc.add("organizationalperson");
-		      //oc.add("user");
-		      oc.add("posixAccount");
-		      oc.add("shadowAccount");
-		      newAttributes.put(oc);
-		      newAttributes.put(new BasicAttribute("uidNumber", "3"));
-		      newAttributes.put(new BasicAttribute("cn", username));
-		      newAttributes.put(new BasicAttribute("sn", surname));
-		      newAttributes.put(new BasicAttribute("gidNumber", "2"));
-		      newAttributes.put(new BasicAttribute("homeDirectory", "/home/"+username));
-		      
-		      //newAttributes.put(new BasicAttribute("givenName", givenName));
-		      //newAttributes.put(new BasicAttribute("displayName", givenName + " " + surname));
-		      System.out.println("Name: " + username + " Attributes: " + newAttributes.toString());
-		      ctx.createSubcontext(distinguishedName, newAttributes);
-	 }
+
 	
 	public void addObject(String dn, Hashtable atts) {
         Attributes attributes = new BasicAttributes();
@@ -179,7 +184,7 @@ public class LDAP {
 	public void deleteObject(String dn) throws NamingException {
 		ctx.unbind(dn);
 	}
-	
+	/*
 	public void searchAssoc(String dn) throws NamingException {
 		NamingEnumeration e = ctx.listBindings(dn);
 		while (e.hasMore()) {
@@ -190,21 +195,22 @@ public class LDAP {
 			System.out.println("classe : " + b.getObject().getClass().getName());
 		}
 	}
+	*/
 	
 	public static void main(String[] args) throws NamingException{
 		
 		LDAP ldap = new LDAP();
-		//ldap.init("ldap://localhost:389"); //Could be ldap://localhost:398/ou=People ...
+		//ldap.init("ldap://87.98.166.65:389"); //Could be ldap://localhost:398/ou=People ...
 		ldap.initAuth("ldap://87.98.166.65:389","cn=admin,dc=pkirepository,dc=org", "PKICrypto");
-		//ldap.searchAllAttributs("ou=People,dc=pkirepository,dc=org", "sn", "Robin");
-		//ldap.searchAttribute("ou=People,dc=pkirepository,dc=org", "cn=Robin", "loginShell");//userPassword
-		//ldap.modifAttribute(DirContext.REPLACE_ATTRIBUTE, "uid=robin,ou=People,dc=pkirepository,dc=org", "telephoneNumber", "89.99.99.99.99");
+		//ldap.searchAllAttributs("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org", "uid", "1234");
+		//ldap.searchAttribute("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org", "uid=1234", "userPassword");//userPassword
+		//ldap.modifAttribute(DirContext.REPLACE_ATTRIBUTE, "uid=1234,ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org", "cn", "BOB");
 		
 		/*
 		Hashtable<String , String> h = new Hashtable<String, String>();
-		h.put("telephonenumber", "12.34.56.78.90");
-		h.put("loginShell","/bin/sh");
-		h.put("description","first user");
+		h.put("description", "nouvelle desc");
+		h.put("cn","Robin1");
+		h.put("sn","David1");
 		ldap.modifMultiples(DirContext.REPLACE_ATTRIBUTE, "uid=robin,ou=People,dc=pkirepository,dc=org",h);
 		*/
 		
@@ -214,7 +220,8 @@ public class LDAP {
 		
 		//ldap.rename("uid=robin3,ou=People,dc=pkirepository,dc=org","uid=robin,ou=People,dc=pkirepository,dc=org");
 		
-		ldap.searchAssoc("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org");
+		//ldap.searchAssoc("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org");
+		System.out.println(ldap.getAttribute("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org", "uid=1234", "userPassword"));
 		
 		ldap.close();
 	}
