@@ -55,8 +55,25 @@ public class ldaputils {
 		}
 	}
 	
+	public static void setCertificateCA(X509Certificate cert, String dn) {
+		LDAP ldap = new LDAP();
+		try {
+			String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
+			//System.out.println(url);
+			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), Config.get("LDAP_PASS","PKICrypto"));
+			
+			ldap.modifAttribute(DirContext.REPLACE_ATTRIBUTE, dn, "cACertificate;binary", cert.getEncoded());
+			
+			ldap.close();
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
 	//setCertificate
-	public static void setCertificate(X509Certificate cert,String uid) {
+	public static void setCertificateUser(X509Certificate cert,String uid, String dn) {
 		LDAP ldap = new LDAP();
 		try {
 			String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
