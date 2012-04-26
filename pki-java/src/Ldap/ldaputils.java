@@ -101,7 +101,7 @@ public class ldaputils {
 			
 			
 			ldap.close();
-			return Playground.CertificateUtils.certificateFromByteArray(res);
+			return CryptoAPI.CertificateUtils.certificateFromByteArray(res);
 		}
 		catch(Exception e) {
 			e.printStackTrace();
