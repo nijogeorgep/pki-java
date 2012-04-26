@@ -37,7 +37,7 @@ class PathCheckerSimple  extends PKIXCertPathChecker {
         BigInteger serial = x509Cert.getSerialNumber();
         X509CRLHolder crl = ldaputils.getCRL("ou=rootCA,dc=pkirepository,dc=org", "intermediatePeopleCA"); //L'avantage de le faire ici est que la signature sera vérifiée pour le certificate dédié à la signature
         
-        if (CRLManager.certNotInCRL(crl, serial)) {
+        if (CRLManager.serialNotInCRL(crl, serial)) {
         	System.out.println("Certificate: "+ serial + " is valid !");
         }
         else {
