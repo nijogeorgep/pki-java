@@ -14,6 +14,7 @@ import java.util.Date;
 
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers;
+import org.bouncycastle.asn1.ocsp.Request;
 import org.bouncycastle.asn1.x509.CRLReason;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
@@ -83,10 +84,12 @@ public class OCSPManager {
 		     Req[] requests = request.getRequestList();
 
 		      for (int i = 0; i != requests.length; i++) { // Pour toute les requêtes contenues dans la requete
-		    	  
+		    	  	Req req = requests[i];
+		    	  	
 		           CertificateID certID = requests[i].getCertID();
 		           BigInteger serial = certID.getSerialNumber();
 		           //FAIRE UNE VRAI VERIFICATION !!!!
+		           
 		           boolean isOK = false;
 
 		           if (isOK)
@@ -149,7 +152,7 @@ public class OCSPManager {
         OCSPReq request = generateOCSPRequest(pubInt, pubPers1.getSerialNumber());
 
         System.out.println(request);
-        
+        System.exit(0);
         
 		OCSPResp response = generateOCSPResponse(request, pubInt, privInt); //meme certificat donc il va dire révoqué !
 		System.out.println(analyseResponse(response, request, pubInt));

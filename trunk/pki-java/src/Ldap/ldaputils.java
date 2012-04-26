@@ -71,6 +71,21 @@ public class ldaputils {
 		}
 	}
 	
+	public static void setCRL(X509CRLHolder crl, String dn) {
+		LDAP ldap = new LDAP();
+		try {
+			String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
+			//System.out.println(url);
+			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), Config.get("LDAP_PASS","PKICrypto"));
+			
+			ldap.modifAttribute(DirContext.REPLACE_ATTRIBUTE, dn, "certificateRevocationList;binary", crl.getEncoded());
+			
+			ldap.close();
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
 	
 	//setCertificate
 	public static void setCertificateUser(X509Certificate cert,String uid, String dn) {
@@ -128,14 +143,14 @@ public class ldaputils {
 	}
 	
 	
-	public static X509CRLHolder getCRL(String url,String organizationalUnit) {
+	public static X509CRLHolder getCRL(String dn, String ou) {
 		LDAP ldap = new LDAP();
 		//ldap.init("ldap://87.98.166.65:389"); //Could be ldap://localhost:398/ou=People ...
 		try {
-		//String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
+		String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
 		ldap.init(url);
 		
-		byte[] res = (byte[]) ldap.getAttribute(Config.get("USERS_BASE_DN", ""), "ou="+organizationalUnit, "certificateRevocationList");
+		byte[] res = (byte[]) ldap.getAttribute(dn, "ou="+ou, "certificateRevocationList;binary");
 		
 		ldap.close();
 		return new X509CRLHolder(res);
@@ -160,6 +175,9 @@ public class ldaputils {
 		X509Certificate cert = getCertificate("1234");
 		System.out.println(cert);
 		*/
+		
+		X509CRLHolder crl = getCRL("dc=pkirepository,dc=org","rootCA");
+		System.out.println(crl.getEncoded());
 	}
 	
 }

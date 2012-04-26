@@ -45,13 +45,13 @@ public class CRLManager {
 		Date now = new Date();
 		X509v2CRLBuilder crlGen = new X509v2CRLBuilder(new X500Name(pub.getSubjectDN().getName()), now);
 		
-		Date nextUpdate = new Date(now.getTime()+60*3); //En théorie devrait être plus long comme 1 mois mais pour les tests 3 minutes
+		Date nextUpdate = new Date(now.getTime()+10000); //En théorie devrait être plus long comme 1 mois mais pour les tests 3 minutes
 		X509Certificate caCrlCert = pub;
 		PrivateKey caCrlPrivateKey = priv;
 		
 		crlGen.setNextUpdate(nextUpdate);
 		
-		crlGen.addExtension(X509Extension.authorityKeyIdentifier, false, new JcaX509ExtensionUtils().createAuthorityKeyIdentifier(caCrlCert));
+		//crlGen.addExtension(X509Extension.authorityKeyIdentifier, false, new JcaX509ExtensionUtils().createAuthorityKeyIdentifier(caCrlCert));
 		crlGen.addExtension(X509Extension.cRLNumber, false, new CRLNumber(BigInteger.valueOf(1)));//c'est moi qui ai mis 1 je pense que c'est si on en fait plusieurs
 		
 		ContentSigner contentSigner = new JcaContentSignerBuilder("SHA1withRSA").setProvider("BC").build(caCrlPrivateKey);//our own key
@@ -65,7 +65,7 @@ public class CRLManager {
 
 		Date now = new Date();
 		X509v2CRLBuilder crlGen = new X509v2CRLBuilder(crl.getIssuer(), now); //bizarre parce qu'on remet toujours date a 0 entre guillemets
-		Date nextUpdate = new Date(now.getTime()+60*3);
+		Date nextUpdate = new Date(now.getTime()+100000);
 		
 		crlGen.addCRL(crl);
 
@@ -98,7 +98,7 @@ public class CRLManager {
 
 		X509CRLEntryHolder entry = crl.getRevokedCertificate(serial);
 		if (entry == null) {
-			System.out.println("Serial " + serial + " is not revoked");
+			//System.out.println("Serial " + serial + " is not revoked");
 			return true;
 		}
 		else {

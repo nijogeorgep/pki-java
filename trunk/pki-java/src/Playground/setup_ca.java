@@ -42,6 +42,7 @@ import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.asn1.x509.X509Extension;
+import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
@@ -58,6 +59,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 
+import CryptoAPI.CRLManager;
 import CryptoAPI.CSRManager;
 import CryptoAPI.CertificateManager;
 import Ldap.ldaputils;
@@ -103,9 +105,25 @@ public class setup_ca {
 		//Ajout le certificat et la clé privé du CA dans le keystore
 		ks.setCertificateEntry("CA_Certificate", caCert);
 		ks.setKeyEntry("CA_Private", keyPair.getPrivate(), Config.get("PASSWORD_CA_ROOT","").toCharArray(), new Certificate[] { caCert});
-		
 		ldaputils.setCertificateCA(caCert, "ou=rootCA,dc=pkirepository,dc=org");
+		X509CRLHolder crlroot = CRLManager.createCRL(caCert, keyPair.getPrivate());
+		ldaputils.setCRL(crlroot,  "ou=rootCA,dc=pkirepository,dc=org");
 		//-----------------------------
+		
+		//------- CA CRL OCSP --------
+		removeAlias(ks,"CA_SigningOnly_Certificate");
+		removeAlias(ks,"CA_SigningOnly_Private");
+
+		//Crée le CA autosigné
+		KeyPair		keyPairSig = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+
+		X509Certificate sigPub = CertificateManager.createSignedCertificateIntermediaire("CA Root", "CA CRL OCSP Signing", keyPairSig, caCert, keyPair.getPrivate(),BigInteger.valueOf(1));
+		
+		//Ajout le certificat et la clé privé du CA dans le keystore
+		ks.setCertificateEntry("CA_SigningOnly_Certificate", sigPub);
+		ks.setKeyEntry("CA_SigningOnly_Private", keyPairSig.getPrivate(),Config.get("PASSWORD_CA_SIG","").toCharArray(), new Certificate[] { caCert, sigPub});
+		//Il ne faut pas le mettre dans le keystore du CA mais dans celui du Repository
+		//-----------------------------------------------
 		
 		
 		//------- CA Intermediaire People --------
@@ -121,6 +139,8 @@ public class setup_ca {
 		ks.setCertificateEntry("CA_IntermediairePeople_Certificate", intCert);
 		ks.setKeyEntry("CA_IntermediairePeople_Private", keyPairInt.getPrivate(),Config.get("PASSWORD_CA_INTP","").toCharArray(), new Certificate[] { caCert, intCert});
 		ldaputils.setCertificateCA(caCert, "ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org");
+		X509CRLHolder crl = CRLManager.createCRL(sigPub, keyPairSig.getPrivate());
+		ldaputils.setCRL(crl,  "ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org");
 		//------------------------------------
 
 		//------- CA Intermediaire Server --------
@@ -136,9 +156,12 @@ public class setup_ca {
 		ks.setCertificateEntry("CA_IntermediaireServer_Certificate", intCert);
 		ks.setKeyEntry("CA_IntermediaireServer_Private", keyPairInt.getPrivate(),Config.get("PASSWORD_CA_INTS","").toCharArray(), new Certificate[] { caCert, intCertS});
 		ldaputils.setCertificateCA(caCert, "ou=intermediateServerCA,ou=rootCA,dc=pkirepository,dc=org");
+		X509CRLHolder crlserv = CRLManager.createCRL(sigPub, keyPairSig.getPrivate());
+		ldaputils.setCRL(crlserv,  "ou=intermediateServerCA,ou=rootCA,dc=pkirepository,dc=org");
 		//-----------------------------------------------
 		
-		/*
+		
+		
 		//------- Creation Personne 1 -------
 		// Si personne1 existe on la retire du keystore
 		removeAlias(ks, "personne1_certificat");
@@ -158,7 +181,7 @@ public class setup_ca {
 
 		ks.setKeyEntry("personne1_private", keyPairPersonne1.getPrivate(), "monpassP1".toCharArray(), createNewChain(chain, personne1_certificat));
 		//--------------------------------------
-		*/
+		
 		
 		ks.store(new FileOutputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
 	}

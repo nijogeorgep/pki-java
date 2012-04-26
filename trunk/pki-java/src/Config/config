@@ -9,8 +9,9 @@ USERS_BASE_DN=ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org
 #ALIAS Keystore
 ALIAS=aliaskey1
 
-#Config 
+#Config mot de passe keystore
 
 PASSWORD_CA_ROOT=passwordRootCA
 PASSWORD_CA_INTP=passwordPeopleCA
-PASSWORD8CA_INTS=passwordServerCA
+PASSWORD_CA_INTS=passwordServerCA
+PASSWORD_CA_SIG=passwordSigningCert
