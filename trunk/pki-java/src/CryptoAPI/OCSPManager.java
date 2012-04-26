@@ -19,6 +19,7 @@ import org.bouncycastle.asn1.x509.CRLReason;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.ocsp.BasicOCSPResp;
 import org.bouncycastle.cert.ocsp.BasicOCSPRespBuilder;
@@ -38,6 +39,8 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
+
+import Ldap.ldaputils;
 
 
 public class OCSPManager {
@@ -70,13 +73,17 @@ public class OCSPManager {
         }
 	}
 
-	   public static OCSPResp generateOCSPResponse(OCSPReq request, X509Certificate caCert, PrivateKey privKey) throws NoSuchProviderException, OCSPException, IOException, OperatorCreationException, CertificateEncodingException, org.bouncycastle.cert.ocsp.OCSPException  {
+	   public static OCSPResp generateOCSPResponse(OCSPReq request, X509Certificate caCert, PrivateKey privKey) {
 		      
 	          //CertificateID revokedID = new CertificateID(new JcaDigestCalculatorProviderBuilder().setProvider("BC").build().get(CertificateID.HASH_SHA1), new X509CertificateHolder(caCert.getEncoded()), revokedSerial);
-
+		   		int response = OCSPRespBuilder.INTERNAL_ERROR;
+		   
 		      SubjectPublicKeyInfo keyinfo = SubjectPublicKeyInfo.getInstance(caCert.getPublicKey().getEncoded());
-		      BasicOCSPRespBuilder respGen = new BasicOCSPRespBuilder(keyinfo, new JcaDigestCalculatorProviderBuilder().setProvider("BC").build().get(CertificateID.HASH_SHA1));
-
+		      BasicOCSPRespBuilder respGen;
+		      try {
+		    	  respGen = new BasicOCSPRespBuilder(keyinfo, new JcaDigestCalculatorProviderBuilder().setProvider("BC").build().get(CertificateID.HASH_SHA1));
+		      }catch(Exception e) { e.printStackTrace(); return null; }
+		    	  
 		     Extension ext = request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce);
 		     if (ext != null) {
 		    	 respGen.setResponseExtensions(new Extensions(new Extension[] { ext }));
@@ -88,20 +95,24 @@ public class OCSPManager {
 		    	  	
 		           CertificateID certID = requests[i].getCertID();
 		           BigInteger serial = certID.getSerialNumber();
-		           //FAIRE UNE VRAI VERIFICATION !!!!
-		           
-		           boolean isOK = false;
 
-		           if (isOK)
+		           X509CRLHolder crl = ldaputils.getCRL("ou=rootCA,dc=pkirepository,dc=org", "intermediatePeopleCA"); /// A CHANGER !!!
+		           
+		           if (CRLManager.serialNotInCRL(crl, serial)) {
 		        	   respGen.addResponse(certID, CertificateStatus.GOOD);
+		           }
 		           else
 		        	   respGen.addResponse(certID,  new RevokedStatus(new Date(), CRLReason.privilegeWithdrawn));
 		      }
-
-		      ContentSigner contentSigner =  new JcaContentSignerBuilder("SHA1withRSA").setProvider("BC").build(privKey);
-		      BasicOCSPResp basicResp = respGen.build(contentSigner, new X509CertificateHolder[] { new X509CertificateHolder(caCert.getEncoded()) }, new Date());
-		      return new OCSPRespBuilder().build(OCSPRespBuilder.SUCCESSFUL, basicResp);
-		      //RECUPERER TOUTE LES ERREURS POSSIBLE ET AU LIEU DE MERDER ENVOYER UN MESSAGE D'ERREUR
+		      			      
+			  try { 
+				  ContentSigner contentSigner =  new JcaContentSignerBuilder("SHA1withRSA").setProvider("BC").build(privKey);
+				  BasicOCSPResp basicResp = respGen.build(contentSigner, new X509CertificateHolder[] { new X509CertificateHolder(caCert.getEncoded()) }, new Date());
+				  response = OCSPRespBuilder.SUCCESSFUL;
+				  return new OCSPRespBuilder().build(response, basicResp);
+			  }catch (Exception e) {
+				  return null;
+			  }
 	} 
 	
 	   
@@ -151,10 +162,11 @@ public class OCSPManager {
 
         OCSPReq request = generateOCSPRequest(pubInt, pubPers1.getSerialNumber());
 
-        System.out.println(request);
-        System.exit(0);
+        //System.out.println(request.isSigned());
+        //System.exit(0);
         
 		OCSPResp response = generateOCSPResponse(request, pubInt, privInt); //meme certificat donc il va dire révoqué !
+		System.out.println(response.getEncoded());
 		System.out.println(analyseResponse(response, request, pubInt));
 
 		/*

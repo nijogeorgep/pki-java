@@ -94,7 +94,7 @@ public class CRLManager {
 		}
 	}
 	
-	public static boolean certNotInCRL(X509CRLHolder crl, BigInteger serial) {
+	public static boolean serialNotInCRL(X509CRLHolder crl, BigInteger serial) {
 
 		X509CRLEntryHolder entry = crl.getRevokedCertificate(serial);
 		if (entry == null) {
@@ -135,8 +135,8 @@ public class CRLManager {
 		System.out.println(isCRLValid(crl, pubca));
 
 		X509CRLHolder crlnew = updateCRL(crl, pubca, privca, BigInteger.ONE, CRLReason.privilegeWithdrawn);
-		System.out.println(certNotInCRL(crlnew, BigInteger.TEN)); //true
-		System.out.println(certNotInCRL(crlnew, BigInteger.ONE)); //false
+		System.out.println(serialNotInCRL(crlnew, BigInteger.TEN)); //true
+		System.out.println(serialNotInCRL(crlnew, BigInteger.ONE)); //false
 		
 		//System.out.println(ASN1Dump.dumpAsString(crlnew.toASN1Structure()));
 		

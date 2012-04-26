@@ -1,4 +1,5 @@
 package Repository;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
@@ -6,6 +7,11 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.ByteBuffer;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.PrivateKey;
+import java.security.Security;
+import java.security.cert.X509Certificate;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
@@ -13,14 +19,27 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.bouncycastle.cert.ocsp.OCSPReq;
+import org.bouncycastle.cert.ocsp.OCSPResp;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import CryptoAPI.OCSPManager;
+import Utils.Config;
+
 public class RepositoryServer {
 
 	ServerSocketChannel s;			//server socket
 	ByteBuffer masterBuffer;		//buffer used to store temporarily bytes read in sockets
 	Selector sel;
 	SelectionKey keyserver;			//SelectionKey of the server
+	//------ Ajout --------
+	X509Certificate caSignerCert;
+	PrivateKey caSignerKey;
+	KeyStore ks;
+	//----------------------
 	
     public static void main(String[] args) {
+    	Security.addProvider(new BouncyCastleProvider());
         try {
             RepositoryServer s = new RepositoryServer();
             s.run();
@@ -36,24 +55,17 @@ public class RepositoryServer {
 		this.s.socket().bind(new InetSocketAddress(5555));		//arbitrarily set to 5555
 		this.s.configureBlocking(false);
 		this.masterBuffer = ByteBuffer.allocate(4096);
-		
 		this.sel = Selector.open();
 		this.keyserver= s.register(this.sel, SelectionKey.OP_ACCEPT);	//register the server selectionkey in accept
-		/* ############# README ###############
-		 * Le fonctionnement du Repository est encore très très obscure dans ma tête.
-		 * Normalement les certificats d'un PKI sont stocké dans un LDAP (et le prof aimerais surkifferais)
-		 * Bref le repository doit fournir 4 services(servers) qui sont:
-		 * 			- Serveur pour les requetes LDAP et le telechargement de certificats
-		 * 			- Serveur pour que le RA se connecte pour l'ajout des nouveaux certificats et de nouvelles CRL
-		 * 			- Serveur pour les demandent de CRL des clients qui veulent mettre à jour leurs CRL
-		 * 			- Serveur OCSP pour les clients qui veulent savoir si un certificat est toujours valide	
-		 * Bref le problème est-ce que l'on peut mutualiser toutes les connections sur un même port, ou alors il faut faire un serveur pour chaque ?
-		 * Solution 1:
-		 * 			On peut mutualiser. Dans ce cas un seul est même serveur reçoit toutes les connections les tris et fait des actions différentes en fonction de la requête.
-		 * Solution 2:
-		 * 			Il vaut mieux pas mutualiser. Dans ce cas il faut écrire une classe Repository qui permettras l'interaction et le controle de chacun des servers qui tournent
-		 * 
-		 *#################################*/
+		//----- Added -----
+		try {
+			this.ks = KeyStore.getInstance(KeyStore.getDefaultType()); //Je load tout les certificats en mémoire pour les avoir directement sous la main
+			this.ks.load(new FileInputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
+			this.caSignerCert = (X509Certificate) ks.getCertificate("CA_SigningOnly_Certificate");
+			this.caSignerKey = (PrivateKey) ks.getKey("CA_SigningOnly_Private", Config.get("PASSWORD_CA_SIG","").toCharArray());
+		} catch (Exception e) { e.printStackTrace();}
+		//--------------------
+		
 	}
 	
 	//main method in wich the main thread will be jailed.
@@ -71,12 +83,11 @@ public class RepositoryServer {
 				
 				if(sk.isValid()) {  //Get in only if the key is valid, which is not always the case
 				
-					if(sk == this.keyserver && sk.isAcceptable()) {  // sk == this.keyserver is optionnal because there's just the server registered in accept
+					if(sk == this.keyserver && sk.isAcceptable()) {
 						SocketChannel client = ((ServerSocketChannel)sk.channel()).accept();
 						client.configureBlocking(false);										//configure client in non-blocking
 						client.register(this.sel, SelectionKey.OP_READ); //register the client in READ with the given attachment (no need to do key.attach)
-						// ## ! It's just above to put an attachment to the key if needed ! (client.register(this.sel, SelectionKey.OP_READ,ATTACHMENT);
-					}
+				}
 					
 					if ( sk.isReadable()) {
 						SocketChannel client =  (SocketChannel) sk.channel(); //gather the socket that triggered the read event
@@ -89,12 +100,17 @@ public class RepositoryServer {
                                 continue; // avoid an CancelledKeyexception (because if we close client the key (sk) is not valid anymore and if(sk.isWritable()) will raise exception)
                             }
                             else {
-                                /* ############# TODO #############
-                                 *    ?????
-                                 *###############################*/
+                            	OCSPReq request  = new OCSPReq(readBuff(byteread)); //Je reconstruit cash la request OCSP a partir de ce que j'ai lu
                             	
-                                // play with attachment etc..
-                                //sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE);
+                            	System.out.println(request.getEncoded()); //pour le debug
+                            	
+                            	OCSPResp response = OCSPManager.generateOCSPResponse(request, this.caSignerCert, this.caSignerKey); //Je génère la réponse (a noter ça aurait pu être bien de le mettre en sk.writable)
+                            	
+                            	System.out.println(response.getEncoded()); //pour le debug
+                            	
+                            	sk.attach(response.getEncoded()); //met le byte[] en attachment pour qu'il soit renvoyé quand il sera passé en write
+                                
+                                sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE); //on le passe en write
                             }						
                         } 
                         catch (IOException e) {
@@ -105,12 +121,11 @@ public class RepositoryServer {
 					}
 					
 					if (sk.isWritable()) {
-
+						byte[] attachment = (byte[]) sk.attachment(); //On récupère l'attachment
+						SocketChannel client =  (SocketChannel) sk.channel(); 
+						client.write(ByteBuffer.wrap(attachment)); //On écrit ce que l'on a récupéré
 						
-						
-						// do whatever you want, play with attachment etc..
-						//sk.interestOps(SelectionKey.OP_READ); //set back the client in read mode
-						
+						sk.interestOps(SelectionKey.OP_READ); //On repasse la clé en read
 					}
 				}
 				
