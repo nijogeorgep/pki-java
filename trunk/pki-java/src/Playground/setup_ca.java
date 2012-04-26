@@ -61,6 +61,7 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import CryptoAPI.CSRManager;
 import CryptoAPI.CertificateManager;
 import Ldap.ldaputils;
+import Utils.Config;
 
 public class setup_ca {
 	
@@ -101,27 +102,43 @@ public class setup_ca {
 			
 		//Ajout le certificat et la clé privé du CA dans le keystore
 		ks.setCertificateEntry("CA_Certificate", caCert);
-		ks.setKeyEntry("CA_Private", keyPair.getPrivate(), "monpassCA".toCharArray(), new Certificate[] { caCert});
+		ks.setKeyEntry("CA_Private", keyPair.getPrivate(), Config.get("PASSWORD_CA_ROOT","").toCharArray(), new Certificate[] { caCert});
 		
 		ldaputils.setCertificateCA(caCert, "ou=rootCA,dc=pkirepository,dc=org");
 		//-----------------------------
 		
 		
-		//------- CA Intermediaire --------
-		removeAlias(ks,"CA_Intermediaire_Certificate");
-		removeAlias(ks,"CA_Intermediaire_Private");
+		//------- CA Intermediaire People --------
+		removeAlias(ks,"CA_IntermediairePeople_Certificate");
+		removeAlias(ks,"CA_IntermediairePeople_Private");
 
 		//Crée le CA autosigné
 		KeyPair		keyPairInt = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 
-		X509Certificate intCert = CertificateManager.createSignedCertificateIntermediaire("CA Root", "CA Intermediaire", keyPairInt, caCert, keyPair.getPrivate(),BigInteger.valueOf(1));
+		X509Certificate intCert = CertificateManager.createSignedCertificateIntermediaire("CA Root", "CA Intermediaire People", keyPairInt, caCert, keyPair.getPrivate(),BigInteger.valueOf(1));
 		
 		//Ajout le certificat et la clé privé du CA dans le keystore
-		ks.setCertificateEntry("CA_Intermediaire_Certificate", intCert);
-		ks.setKeyEntry("CA_Intermediaire_Private", keyPairInt.getPrivate(), "monpassInt".toCharArray(), new Certificate[] { caCert, intCert});
+		ks.setCertificateEntry("CA_IntermediairePeople_Certificate", intCert);
+		ks.setKeyEntry("CA_IntermediairePeople_Private", keyPairInt.getPrivate(),Config.get("PASSWORD_CA_INTP","").toCharArray(), new Certificate[] { caCert, intCert});
 		ldaputils.setCertificateCA(caCert, "ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org");
 		//------------------------------------
+
+		//------- CA Intermediaire Server --------
+		removeAlias(ks,"CA_IntermediaireServer_Certificate");
+		removeAlias(ks,"CA_IntermediaireServer_Private");
+
+		//Crée le CA autosigné
+		KeyPair		keyPairIntS = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+
+		X509Certificate intCertS = CertificateManager.createSignedCertificateIntermediaire("CA Root", "CA Intermediaire Server", keyPairIntS, caCert, keyPair.getPrivate(),BigInteger.valueOf(1));
 		
+		//Ajout le certificat et la clé privé du CA dans le keystore
+		ks.setCertificateEntry("CA_IntermediaireServer_Certificate", intCert);
+		ks.setKeyEntry("CA_IntermediaireServer_Private", keyPairInt.getPrivate(),Config.get("PASSWORD_CA_INTS","").toCharArray(), new Certificate[] { caCert, intCertS});
+		ldaputils.setCertificateCA(caCert, "ou=intermediateServerCA,ou=rootCA,dc=pkirepository,dc=org");
+		//-----------------------------------------------
+		
+		/*
 		//------- Creation Personne 1 -------
 		// Si personne1 existe on la retire du keystore
 		removeAlias(ks, "personne1_certificat");
@@ -141,7 +158,7 @@ public class setup_ca {
 
 		ks.setKeyEntry("personne1_private", keyPairPersonne1.getPrivate(), "monpassP1".toCharArray(), createNewChain(chain, personne1_certificat));
 		//--------------------------------------
-
+		*/
 		
 		ks.store(new FileOutputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
 	}

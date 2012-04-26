@@ -1,4 +1,4 @@
-package Playground;
+package CryptoAPI;
 
 import java.io.ByteArrayInputStream;
 import java.security.cert.CertificateException;
