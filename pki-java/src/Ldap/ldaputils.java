@@ -161,6 +161,29 @@ public class ldaputils {
 		}
 	}
 	
+  public static String getUIDFromSubject(String ident)
+  {
+    LDAP ldap = new LDAP();
+    //ldap.init("ldap://87.98.166.65:389"); //Could be ldap://localhost:398/ou=People ...
+    try 
+    {
+      String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
+      ldap.init(url);
+      String[] id = ident.split(" ");
+      String[] cnTmp = id[0].split("=");
+      String cn = cnTmp[1];
+      String sn = id[1];
+      String uid = ldap.searchAttribute(Config.get("USERS_BASE_DN", ""), cn,"sn="+sn, "uid");
+      ldap.close();
+      return uid;
+    }
+    catch(Exception e) 
+    {
+      e.printStackTrace();
+      return null;
+    }
+  }
+	
 	public static void main(String[] args) throws IOException, NoSuchAlgorithmException, OperatorCreationException, CertificateException {
 		//createNewUser("2222", "Pierre", "Junk", "coucou".getBytes());
 		//System.out.println(getUserPassword("1234"));
@@ -175,9 +198,10 @@ public class ldaputils {
 		X509Certificate cert = getCertificate("1234");
 		System.out.println(cert);
 		*/
-		
-		X509CRLHolder crl = getCRL("dc=pkirepository,dc=org","rootCA");
-		System.out.println(crl.getEncoded());
+	//	X509CRLHolder crl = getCRL("dc=pkirepository,dc=org","rootCA");
+	//	System.out.println(crl.getEncoded());
 	}
+
+
 	
 }

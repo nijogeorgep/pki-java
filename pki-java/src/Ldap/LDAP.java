@@ -126,6 +126,48 @@ public class LDAP {
 			}
 		}
 	}
+	
+	public String searchAttribute(String dnBase, String cn,String sn, String att) throws NamingException {
+	  /*
+	   * Affiche l'attribut demandé pour chaque entrée correspondant au filtre
+	   */
+	    //Options de recherche
+	    SearchControls constraints = new SearchControls();
+	    constraints.setSearchScope(SearchControls.SUBTREE_SCOPE);
+
+	    //Indication du DN de la base et du filtre de recherche
+	    NamingEnumeration results = ctx.search(dnBase, sn,  constraints);
+
+	    //Pour chaque entrée, afficher les attributs
+	    while (results != null && results.hasMore()) {
+	      //Lecture d'une entrée
+	      SearchResult entry = (SearchResult) results.next();
+
+	      Attributes attrs = entry.getAttributes();
+	      if (attrs != null) {
+	        //Parcours de tous les attributs
+	        String uid = "";
+	        for (NamingEnumeration attEnum = attrs.getAll(); attEnum.hasMoreElements();) {
+	          Attribute attr = (Attribute) attEnum.next();
+	          String attrId = attr.getID();
+	         
+	          if(attrId.equals("uid")){
+	            Enumeration valsInterm = attr.getAll();
+              valsInterm.hasMoreElements();
+              uid = valsInterm.nextElement().toString();
+	          }
+	          if (attrId.equals("cn")) {
+	            Enumeration valsInterm = attr.getAll();
+	            valsInterm.hasMoreElements();
+	            if(valsInterm.nextElement().toString().equals(cn)){
+	                return uid;
+	              }
+	            }
+	            }
+	          }
+	        }
+      return null;
+	  }
 	/*
 	public void addObject() throws NamingException {
 	      //Apartment objet = new Apartment("12","valeur1");  //L'objet peut être n'importe quel objet qui implémente serializable
