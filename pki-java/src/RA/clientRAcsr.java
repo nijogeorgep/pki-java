@@ -30,7 +30,7 @@ import CryptoAPI.CertificateUtils;
 import CryptoAPI.MessageDigestUtils;
 import CryptoAPI.OCSPManager;
 
-public class clientRA {
+public class clientRAcsr {
 	public static byte[] read(InputStream in) throws IOException {
 		byte[] res = new byte[4096]; //Créer un tableau très grand. (Je m'attends a tout recevoir d'un coup j'ai pas envie de me faire chier)
 		int read = in.read(res); //Je lis
@@ -64,7 +64,7 @@ public class clientRA {
 		String reply  = new String(read(in));
 		System.out.println(new String(reply));
 		
-		out.write(MessageDigestUtils.digest("caca"));
+		out.write(MessageDigestUtils.digest("cacau"));
 		
 		byte[] rep = read(in);
 		X509Certificate cert  = CertificateUtils.certificateFromByteArray(rep);
