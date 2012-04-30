@@ -9,6 +9,9 @@ USERS_BASE_DN=ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org
 #ALIAS Keystore
 ALIAS=aliaskey1
 
+#Config RA
+IP_RA=localhost
+
 #Config mot de passe keystore
 
 PASSWORD_CA_ROOT=passwordRootCA

@@ -1,6 +1,8 @@
 package Clients;
 
 import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -18,16 +20,21 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.Scanner;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
 import sun.security.krb5.Config;
 
+import CryptoAPI.CSRManager;
+import CryptoAPI.CertificateUtils;
+import CryptoAPI.MessageDigestUtils;
 import Ldap.LDAP;
 import Ldap.ldaputils;
 import Playground.setup_ca;
@@ -96,43 +103,13 @@ public class Client {
       switch(al)
       {
         case('1'):// creation d'un certificat
-          if(ks.containsAlias(aliasKS))
+          try
           {
-            //creation CSR
-            PKCS10CertificationRequest createCertReq = creerCertificat();
-            System.out.println(createCertReq.toString());
-            //connnection et envoi au RA du CSR.
-            Socket raSock = new Socket("localhost",7000);
-            ObjectOutputStream stream = new ObjectOutputStream(raSock.getOutputStream());
-            stream.writeObject(createCertReq.getEncoded());
-            
-            //identification
-            //TODO chiffrer le mdp avant l'envoi.
-            System.out.println("Saisissez votre mot de passe");
-            String pwd = saisieString();
-            stream.writeObject(pwd);
-            
-            ObjectInputStream inStream1 = new ObjectInputStream(raSock.getInputStream());
-            Boolean pwdCorrect = inStream1.readBoolean();
-            if(pwdCorrect)
-            {
-              //Le RA renvoi un certificat.
-              ObjectInputStream inStream = new ObjectInputStream(raSock.getInputStream());
-              X509Certificate c = (X509Certificate) inStream.readObject();
-              
-              //Enregistrement du certificat dans le keystore.
-              ks.setCertificateEntry(aliasKS, c);
-              System.out.println(c.toString());
-            }
-            else
-            {
-             System.out.println("erreur de mot de passe."); 
-            }    
+            creerCertificat();
           }
-          else
+          catch (Exception e)
           {
-            System.out.println("Vous possédez déjà un certificat. Révoquez le avant d'en" +
-            		"creer un nouveau. ");
+            e.printStackTrace();
           }
           break ; 
         case('2'): // révocation d'un certificat    
@@ -165,13 +142,7 @@ public class Client {
           }
           break ; 
         case('3'):// récupération d'un certificat
-            System.out.println("Donnez l'UID de votre correspondant");
-            String uid = saisieString();
-            //LDAP recheche un certificat avec l'uid qu'on lui a donné.
-            X509Certificate c = ldaputils.getCertificate(uid);
-            //ajout du certificat dans le keystore.
-            ks.setCertificateEntry(Utils.Config.get("ALIAS", "default_val"), c);
-            System.out.println("Certificat ajouté");
+                recupererCertificat();
             break ; 
         case('4'):// connection en mode client
           client.connect(ip,5555,false);
@@ -203,34 +174,59 @@ public class Client {
 	
 
   
-  private static PKCS10CertificationRequest creerCertificat()
+  private static void recupererCertificat() throws KeyStoreException, IOException
   {
-    System.out.println("Nom du certificat : ");
-    String nomCertif = saisieString();
-    KeyPair kp;
-    try
-    {
-      kp = KeyPairGenerator.getInstance("RSA").generateKeyPair();
-      try
-      {
-        return setup_ca.generate_csr(nomCertif,kp);
-      }
-      catch (NoSuchAlgorithmException e)
-      {
-        e.printStackTrace();
-      }
-      catch (OperatorCreationException e)
-      {
-        e.printStackTrace();
-      }
+    System.out.println("Donnez l'UID de votre correspondant");
+    String uid = saisieString();
+    //LDAP recheche un certificat avec l'uid qu'on lui a donné.
+    X509Certificate c = ldaputils.getCertificate(uid);
+    //ajout du certificat dans le keystore.
+    System.out.println(c.toString());
+    ks.setCertificateEntry(Utils.Config.get("ALIAS", "default_val"), c);
+    System.out.println("Certificat ajouté");
+  }
+
+  private static PKCS10CertificationRequest creerCertificat() throws Exception
+  {
+    Security.addProvider(new BouncyCastleProvider());
+    
+    KeyPair   kp = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+    
+    String surname,commonname,pwd ;
+    System.out.println("Entrez votre nom");
+    surname = saisieString();
+    System.out.println("Entrez votre prénom");
+    commonname = saisieString();
+    System.out.println("Entrez votre mot de passe");
+    pwd = saisieString();
+    String identite = commonname.replace(" ", "-") + " " + surname.replace(" ", "-");
+    PKCS10CertificationRequest request = CSRManager.generate_csr(identite, kp);
+    
+    Socket s = new Socket("localhost", 6666); //on se connecte
+    DataOutputStream out = new DataOutputStream(s.getOutputStream()); //A noter que j'utilise des DataOutputStream et pas des ObjectOutputStream
+    DataInputStream in = new DataInputStream(s.getInputStream());
+    
+    byte[] bytes = request.getEncoded(); //rÃ©cupÃ¨re le tableau de bytes de la requete
+    //byte[] bytes = "coucou".getBytes();
+    
+    out.write(bytes); //on envoie la requete
+    
+    String reply  = new String(read(in));
+    System.out.println(new String(reply));
+    
+    out.write(MessageDigestUtils.digest(pwd));
+    
+    byte[] rep = read(in);
+    X509Certificate cert  = CertificateUtils.certificateFromByteArray(rep);
+    if (cert == null) {
+      System.out.println(new String(rep));
     }
-    catch (NoSuchAlgorithmException e1)
-    {
-      e1.printStackTrace();
-    } ;
+    else
+      System.out.println(cert.toString());
+    
+    s.close();
+    
     return null;
-    
-    
   }
   
   private static char saisie()
@@ -246,6 +242,20 @@ public class Client {
     String s = null;
     s = sc.nextLine();
     return s;
+  }
+  
+  public static byte[] read(InputStream in) throws IOException {
+    byte[] res = new byte[4096]; //CrÃ©er un tableau trÃ¨s grand. (Je m'attends a tout recevoir d'un coup j'ai pas envie de me faire chier)
+    int read = in.read(res); //Je lis
+    if (read == -1) { //si on a rien lu c'est que le serveur a eu un problÃ¨me
+        throw new IOException();
+    }
+    
+    byte[] res_fitted = new byte[read]; //je dÃ©clare un tableau de la taille juste
+    for (int i=0; i < read; i++) { //je recopie le byte dedans
+      res_fitted[i] = res[i];
+    }
+    return res_fitted;
   }
   
 	public void connect(String ip,int numPort, boolean blocking) {
