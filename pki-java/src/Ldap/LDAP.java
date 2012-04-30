@@ -203,7 +203,9 @@ public class LDAP {
 		//ldap.init("ldap://87.98.166.65:389"); //Could be ldap://localhost:398/ou=People ...
 		ldap.initAuth("ldap://87.98.166.65:389","cn=admin,dc=pkirepository,dc=org", "PKICrypto");
 		//ldap.searchAllAttributs("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org", "uid", "1234");
-		//ldap.searchAttribute("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org", "uid=1234", "userPassword");//userPassword
+		Object[] tab = {"cn=BOB","sn=David"};
+		//ldap.searchAttribute("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org","cn=BOB", "uid");//userPassword
+		ldap.getAttribute("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org","cn=BOB;sn=David", "uid");
 		//ldap.modifAttribute(DirContext.REPLACE_ATTRIBUTE, "uid=1234,ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org", "cn", "BOB");
 		
 		/*
@@ -221,7 +223,7 @@ public class LDAP {
 		//ldap.rename("uid=robin3,ou=People,dc=pkirepository,dc=org","uid=robin,ou=People,dc=pkirepository,dc=org");
 		
 		//ldap.searchAssoc("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org");
-		System.out.println(ldap.getAttribute("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org", "uid=1234", "userPassword"));
+		//System.out.println(ldap.getAttribute("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org", "uid=1234", "userPassword"));
 		
 		ldap.close();
 	}
