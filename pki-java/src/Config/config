@@ -7,7 +7,7 @@ LDAP_PASS=PKICrypto
 USERS_BASE_DN=ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org
 
 #ALIAS Keystore
-ALIAS=aliaskey1
+ALIAS=personne1_certificat
 
 #Config RA
 IP_RA=localhost
