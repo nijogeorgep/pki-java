@@ -177,7 +177,7 @@ public class setup_ca {
 
 		//Ajout le certificat et la clé privé de personne1
 		ks.setCertificateEntry("personne1_certificat", personne1_certificat);
-		Certificate[] chain = ks.getCertificateChain("CA_Intermediaire_Private");
+		Certificate[] chain = ks.getCertificateChain("CA_IntermediairePeople_Private");
 
 		ks.setKeyEntry("personne1_private", keyPairPersonne1.getPrivate(), "monpassP1".toCharArray(), createNewChain(chain, personne1_certificat));
 		//--------------------------------------

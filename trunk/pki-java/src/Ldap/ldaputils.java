@@ -55,6 +55,31 @@ public class ldaputils {
 		}
 	}
 	
+	public static boolean deleteUser(String dn)
+	{
+    try
+    {
+      LDAP ldap = new LDAP();
+      //ldap.init("ldap://87.98.166.65:389"); //Could be ldap://localhost:398/ou=People ...
+      String url;
+      url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
+      ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), Config.get("LDAP_PASS","PKICrypto"));
+      ldap.deleteObject(dn);
+      ldap.close();
+    }
+    catch (IOException e)
+    {
+      e.printStackTrace();
+    }
+    catch (NamingException e)
+    {
+      e.printStackTrace();
+    }
+   
+    
+	  return false ;
+	}
+	
 	public static void setCertificateCA(X509Certificate cert, String dn) {
 		LDAP ldap = new LDAP();
 		try {
@@ -185,6 +210,7 @@ public class ldaputils {
       String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
       ldap.init(url);
       String[] id = ident.split(" ");
+      System.out.println(ident);
       String[] cnTmp = id[0].split("=");
       String cn = cnTmp[1];
       String sn = id[1];
