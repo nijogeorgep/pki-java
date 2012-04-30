@@ -21,6 +21,7 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.AuthorityInformationAccess;
 import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.CRLDistPoint;
 import org.bouncycastle.asn1.x509.DistributionPoint;
 import org.bouncycastle.asn1.x509.DistributionPointName;
 import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
@@ -101,15 +102,15 @@ public class CSRManager {
 		KeyUsage keyUsage = new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation |KeyUsage.keyEncipherment|KeyUsage.dataEncipherment|KeyUsage.digitalSignature);
 		myCertificateGenerator.addExtension(X509Extension.keyUsage, true, keyUsage); //KeyUsage doit être critique
 		
-		String url = "http://87.98.166.65:389/ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org";
+		String url = "ldap://87.98.166.65:389/ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org";
+		
 		GeneralName gn = new GeneralName(GeneralName.uniformResourceIdentifier, new DERIA5String(url));
 		GeneralNames gns = new GeneralNames(gn);
 		DistributionPointName dpn = new DistributionPointName(gns);
 		DistributionPoint distp = new DistributionPoint(dpn, null, null);
 		DERSequence seq = new DERSequence(distp);
 		myCertificateGenerator.addExtension(X509Extension.cRLDistributionPoints, false, seq);
-        //builder.addExtension(X509Extension.cRLDistributionPoints, false, new CRLDistPoint(new DistributionPoint[] { point }));
-		
+
 		url = "http://87.98.166.65:80";
 		gn = new GeneralName(GeneralName.uniformResourceIdentifier, new DERIA5String(url));
 		AuthorityInformationAccess acc = new AuthorityInformationAccess(X509Extension.authorityInfoAccess, gn);

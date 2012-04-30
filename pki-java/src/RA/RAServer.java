@@ -105,13 +105,18 @@ public class RAServer {
                             	if(sk.attachment() == null) {
                             		try {
                             			PKCS10CertificationRequest request = new PKCS10CertificationRequest(received);
+                            			System.out.println("In CSR");
                             			CSRHandlerThread cli = new CSRHandlerThread(request);
                             			cli.start();
                             			sk.attach(cli);
                             			System.out.println(request.getEncoded());
                             		}
                             		catch(Exception e) {//c'est une demande de revocation
-                            			//On fait la même chose qu'au dessus mais avec la classe qui gère la revocation
+                            			System.out.println("In revocation");
+                            			String uid = new String(received);
+                            			RevocationRequestThread cli = new RevocationRequestThread(uid);
+                            			cli.start();
+                            			sk.attach(cli);
                             		}
                             	}
                             	else {
@@ -140,7 +145,7 @@ public class RAServer {
 							//System.out.println("nothing to do !");
 						}
 						else {
-							System.out.println("Will write:"+ ch.getBytesToWrite());
+							//System.out.println("Will write:"+ ch.getBytesToWrite());
 							client.write(ByteBuffer.wrap(ch.getBytesToWrite())); //On écrit ce qu'il y a dans et l'on ne ce soucis pas des données
 							ch.resetBytesToWrite();
 							sk.interestOps(SelectionKey.OP_READ);

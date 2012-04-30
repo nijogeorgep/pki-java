@@ -64,7 +64,7 @@ public class clientRAcsr {
 		String reply  = new String(read(in));
 		System.out.println(new String(reply));
 		
-		out.write(MessageDigestUtils.digest("cacau"));
+		out.write(MessageDigestUtils.digest("caca"));
 		
 		byte[] rep = read(in);
 		X509Certificate cert  = CertificateUtils.certificateFromByteArray(rep);

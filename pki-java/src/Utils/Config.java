@@ -7,13 +7,18 @@ import java.util.Properties;
 
 public class Config {
 
-	public static String get(String attribute, String default_val) throws IOException {
-		Properties prop = new Properties();
-	    InputStream is = new FileInputStream("src/Config/config");
-
-	    prop.load(is);
-
-		return prop.getProperty(attribute,default_val);
+	public static String get(String attribute, String default_val) {
+		try {
+			Properties prop = new Properties();
+		    InputStream is = new FileInputStream("src/Config/config");
+	
+		    prop.load(is);
+	
+			return prop.getProperty(attribute,default_val);
+		}
+		catch(IOException e) {
+			return null;
+		}
 	}
 	
 	public static void main(String[] args) throws IOException {

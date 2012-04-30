@@ -17,6 +17,7 @@ import java.security.cert.CRLException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
+import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 
@@ -31,6 +32,7 @@ import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CRLEntryHolder;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.X509v2CRLBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CRLConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
@@ -38,6 +40,8 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.x509.extension.X509ExtensionUtil;
+
+import Ldap.ldaputils;
 
 public class CRLManager {
 	public static X509CRLHolder createCRL(X509Certificate pub, PrivateKey priv) throws CertificateParsingException, InvalidKeyException, NoSuchProviderException, SecurityException, SignatureException, CertificateEncodingException, CertIOException, NoSuchAlgorithmException, OperatorCreationException, FileNotFoundException {
@@ -61,28 +65,33 @@ public class CRLManager {
 		//System.out.println(ASN1Dump.dumpAsString(crlholder.toASN1Structure()));
 	}
 
-	public static X509CRLHolder updateCRL(X509CRLHolder crl, X509Certificate pub, PrivateKey priv, BigInteger serial, int reason) throws InvalidKeyException, NoSuchProviderException, SecurityException, SignatureException, CertificateParsingException, CRLException, OperatorCreationException, CertificateEncodingException, CertIOException, NoSuchAlgorithmException {
-
-		Date now = new Date();
-		X509v2CRLBuilder crlGen = new X509v2CRLBuilder(crl.getIssuer(), now); //bizarre parce qu'on remet toujours date a 0 entre guillemets
-		Date nextUpdate = new Date(now.getTime()+100000);
-		
-		crlGen.addCRL(crl);
-
-		crlGen.addCRLEntry(serial, now, reason);
-		
-		crlGen.setNextUpdate(nextUpdate);
-		
-		Extension ex = crl.getExtension(X509Extension.cRLNumber);
-		BigInteger newnumber = new BigInteger(ex.getParsedValue().toString()).add(BigInteger.ONE);
-		
-		crlGen.addExtension(X509Extension.authorityKeyIdentifier, false, new JcaX509ExtensionUtils().createAuthorityKeyIdentifier(pub));
-		crlGen.addExtension(X509Extension.cRLNumber, false, new CRLNumber(newnumber));//incrémente le numero de la CRL
-		
-		ContentSigner contentSigner = new JcaContentSignerBuilder("SHA1withRSA").setProvider("BC").build(priv);//Sign la CRL
-		X509CRLHolder crlholder = crlGen.build(contentSigner);
-		
-		return crlholder;
+	public static X509CRLHolder updateCRL(X509CRLHolder crl, X509Certificate pub, PrivateKey priv, BigInteger serial, int reason) {
+		Security.addProvider(new BouncyCastleProvider());
+		try {
+			Date now = new Date();
+			X509v2CRLBuilder crlGen = new X509v2CRLBuilder(crl.getIssuer(), now); //bizarre parce qu'on remet toujours date a 0 entre guillemets
+			Date nextUpdate = new Date(now.getTime()+100000);
+			
+			crlGen.addCRL(crl);
+	
+			crlGen.addCRLEntry(serial, now, reason);
+			
+			crlGen.setNextUpdate(nextUpdate);
+			
+			Extension ex = crl.getExtension(X509Extension.cRLNumber);
+			BigInteger newnumber = new BigInteger(ex.getParsedValue().toString()).add(BigInteger.ONE);
+			
+			crlGen.addExtension(X509Extension.authorityKeyIdentifier, false, new JcaX509ExtensionUtils().createAuthorityKeyIdentifier(pub));
+			crlGen.addExtension(X509Extension.cRLNumber, false, new CRLNumber(newnumber));//incrémente le numero de la CRL
+			
+			ContentSigner contentSigner = new JcaContentSignerBuilder("SHA1withRSA").setProvider("BC").build(priv);//Sign la CRL
+			X509CRLHolder crlholder = crlGen.build(contentSigner);
+			
+			return crlholder;
+		}
+		catch(Exception e) {
+			return null;
+		}
 	}
 	
 	public static boolean isCRLValid(X509CRLHolder crl, X509Certificate caCert) {
@@ -119,9 +128,26 @@ public class CRLManager {
 		}
 	}
 	
+	
+	
+	public static X509CRL CRLFromCrlHolder(X509CRLHolder crlh) {
+		Security.addProvider(new BouncyCastleProvider());
+		JcaX509CRLConverter crlConverter = new JcaX509CRLConverter().setProvider("BC");
+    	try {
+			return crlConverter.getCRL(crlh);
+		} catch (CRLException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
 	public static void main(String[] args) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, UnrecoverableKeyException, InvalidKeyException, NoSuchProviderException, SecurityException, SignatureException, OperatorCreationException, CertException, CRLException {
 		Security.addProvider(new BouncyCastleProvider());
 		
+		X509CRLHolder crl =ldaputils.getCRL("ou=rootCA,dc=pkirepository,dc=org", "intermediatePeopleCA");
+		System.out.println(CRLManager.serialNotInCRL(crl, new BigInteger("1234")));
+		System.exit(0);
+		/*
 		KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
 		ks.load(new FileInputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
 		
@@ -139,7 +165,7 @@ public class CRLManager {
 		System.out.println(serialNotInCRL(crlnew, BigInteger.ONE)); //false
 		
 		//System.out.println(ASN1Dump.dumpAsString(crlnew.toASN1Structure()));
-		
+		*/
 	}
 	
 	
