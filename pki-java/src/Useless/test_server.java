@@ -1,4 +1,4 @@
-package Playground;
+package Useless;
 
 import java.io.FileInputStream;
 import java.io.IOException;

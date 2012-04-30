@@ -1,4 +1,4 @@
-package Playground;
+package Useless;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -162,7 +162,7 @@ public class test_signature_chiffrement {
 
         byte[] signedBytes = envelopedData; 
         CMSSignedData signedDataIn = new CMSSignedData(signedBytes); 
-        SignerInformation signer = (SignerInformation) signedData.getSignerInfos().getSigners().iterator().next(); 
+        SignerInformation signer = (SignerInformation) signedDataIn.getSignerInfos().getSigners().iterator().next(); 
         byte[] data = (byte[]) signedDataIn.getSignedContent().getContent(); 
 
         //verify signature 
