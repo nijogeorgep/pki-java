@@ -53,7 +53,8 @@ public class CAServer {
   ByteBuffer masterBuffer;    //buffer used to store temporarily bytes read in sockets
   Selector sel;
   SelectionKey keyserver;     //SelectionKey of the server
-
+  PrivateKey cakey;
+  X509Certificate caCert;
   KeyStore ks;
   
     public static void main(String[] args) throws UnrecoverableKeyException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, NoSuchProviderException, SignatureException, OperatorCreationException, CertificateException {
@@ -80,6 +81,8 @@ public class CAServer {
     try {
       this.ks = KeyStore.getInstance(KeyStore.getDefaultType()); //Je load tout les certificats en mÃ©moire pour les avoir directement sous la main
       this.ks.load(new FileInputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
+      this.cakey = (PrivateKey) ks.getKey("CA_IntermediairePeople_Private", Config.get("PASSWORD_CA_INTP", "default_val").toCharArray());
+      this.caCert = (X509Certificate)ks.getCertificate("CA_IntermediairePeople_Certificate");
     } catch (Exception e) { e.printStackTrace();}
     
   }
@@ -119,20 +122,20 @@ public class CAServer {
                               //if(client.socket().getInetAddress().equals(Utils.Config.get("IP_RA", "")))
                               if(true)
                               {
-                                //récupération du csr
+                                //rÃ©cupÃ©ration du csr
                                 PKCS10CertificationRequest csr = new PKCS10CertificationRequest( readBuff(byteread));
-                                PrivateKey pk = (PrivateKey) ks.getKey("CA_IntermediairePeople_Private", Config.get("PASSWORD_CA_INTP", "default_val").toCharArray());
-                                //création d'un certificat signé
+                                //PrivateKey pk = (PrivateKey) ks.getKey("CA_IntermediairePeople_Private", Config.get("PASSWORD_CA_INTP", "default_val").toCharArray());
+                                //crÃ©ation d'un certificat signÃ©
                                  BigInteger bigInt = new BigInteger(ldaputils.getUIDFromSubject(csr.getSubject().toString()));
                                  
-                                 X509Certificate c = CSRManager.retrieveCertificateFromCSR(csr,pk , (X509Certificate)ks.getCertificate("CA_IntermediairePeople_Certificate"), bigInt);
+                                 X509Certificate c = CSRManager.retrieveCertificateFromCSR(csr,cakey , caCert, bigInt);
                                  sk.attach(c.getEncoded());
-                                 sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE);
+                                 sk.interestOps(SelectionKey.OP_WRITE);
                               }
                               else
                               {
-                                System.out.println("vous n'êtes pas autorisé à vous connecter au CA");
-                                sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE);
+                                System.out.println("vous n'etes pas autorise a vous connecter au CA");
+                                client.close();//sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE);
                               }
                             }           
                         } 

@@ -1,6 +1,16 @@
 package RA;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+
+import CryptoAPI.MessageDigestUtils;
+import Ldap.ldaputils;
 
 public class CSRHandlerThread extends Thread implements Runnable, CommunicationHandler {
 	byte[] bytesread = null;
@@ -32,15 +42,53 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 			if(hasSomethingToRead()) {
 				byte[] bytes = this.getRead(); //Ici pour un CSR ce qu'on récupère c'est le password
 				
-				if(new String(bytes).equals("coucou")) {
-					this.setBytesToWrite("OK second".getBytes());
+				String uid = ldaputils.getUIDFromSubject(request.getSubject().toString());// on récupère l'uid a partir de la csr
+				if(uid == null) {
+					this.setBytesToWrite("Fail user not found".getBytes());
+					break;
 				}
-				else
-					this.setBytesToWrite("NOP".getBytes());
+				
+				byte[] ldappass = ldaputils.getUserPassword(uid);
+				
+				if(MessageDigestUtils.checkDigest(bytes, ldappass)) {
+					//this.setBytesToWrite("OK".getBytes());
+					
+					//---------- Connection au CA -------------
+					Socket s;
+					try {
+						s = new Socket("localhost", 5555);
+						DataOutputStream out = new DataOutputStream(s.getOutputStream()); //A noter que j'utilise des DataOutputStream et pas des ObjectOutputStream
+						DataInputStream in = new DataInputStream(s.getInputStream());
+						
+						byte[] bytesrec = this.request.getEncoded(); //récupère le tableau de bytes de la requete
+						
+						out.write(bytesrec); //on envoie la requete
+						
+						byte[] reply  = read(in);
+						
+						System.out.println(reply);
+						
+						this.setBytesToWrite(reply);
+						s.close();
+						
+					} catch (UnknownHostException e) {
+						this.setBytesToWrite("Unknown host CA".getBytes());
+						e.printStackTrace();
+					} catch (IOException e) {
+						this.setBytesToWrite("'IOError CA connection".getBytes());
+						e.printStackTrace();
+					}
+					//----------------------------------------------
+					
+				}
+				else {
+					this.setBytesToWrite("Fail password wrong".getBytes());
+				}
+
 				break;
 			}
     		try {
-				Thread.sleep(5000);// avoid to load CPU at 100%
+				Thread.sleep(100);// avoid to load CPU at 100%
 			} catch (InterruptedException e) {	break; }
 			
     	}
@@ -76,5 +124,19 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 	@Override
 	public void resetBytesToWrite() {
 		this.bytestowrite = null;
+	}
+	
+	public static byte[] read(InputStream in) throws IOException {
+		byte[] res = new byte[4096]; //Créer un tableau très grand. (Je m'attends a tout recevoir d'un coup j'ai pas envie de me faire chier)
+		int read = in.read(res); //Je lis
+		if (read == -1) { //si on a rien lu c'est que le serveur a eu un problème
+				throw new IOException();
+		}
+		
+		byte[] res_fitted = new byte[read]; //je déclare un tableau de la taille juste
+		for (int i=0; i < read; i++) { //je recopie le byte dedans
+			res_fitted[i] = res[i];
+		}
+		return res_fitted;
 	}
 }

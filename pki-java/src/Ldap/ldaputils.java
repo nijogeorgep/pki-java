@@ -142,6 +142,21 @@ public class ldaputils {
 		}
 	}
 	
+	public static void setUserPassword(byte[] pass, String dn) {
+		LDAP ldap = new LDAP();
+		try {
+			String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
+			//System.out.println(url);
+			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), Config.get("LDAP_PASS","PKICrypto"));
+			
+			ldap.modifAttribute(DirContext.REPLACE_ATTRIBUTE, dn, "userPassword", pass);
+			
+			ldap.close();
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
 	
 	public static X509CRLHolder getCRL(String dn, String ou) {
 		LDAP ldap = new LDAP();
