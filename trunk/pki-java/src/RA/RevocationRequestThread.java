@@ -1,6 +1,6 @@
 package RA;
 
-public class RevocationRequest {
+public class RevocationRequestThread {
 /* ######## README #########
  * Bon j'explique brievement l'idée qui m'est passé par la tête.
  * Cet objet sera crée pour chaque demande de revocation faite auprès du RA.
