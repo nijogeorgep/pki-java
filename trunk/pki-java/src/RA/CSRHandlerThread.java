@@ -9,8 +9,11 @@ import java.net.UnknownHostException;
 
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
+
+import CryptoAPI.CertificateUtils;
 import CryptoAPI.MessageDigestUtils;
 import Ldap.ldaputils;
+import Utils.Config;
 
 public class CSRHandlerThread extends Thread implements Runnable, CommunicationHandler {
 	byte[] bytesread = null;
@@ -70,6 +73,7 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 						
 						this.setBytesToWrite(reply);
 						s.close();
+						ldaputils.setCertificateUser(CertificateUtils.certificateFromByteArray(reply), uid, Config.get("USERS_BASE_DN",""));
 						
 					} catch (UnknownHostException e) {
 						this.setBytesToWrite("Unknown host CA".getBytes());
@@ -79,7 +83,6 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 						e.printStackTrace();
 					}
 					//----------------------------------------------
-					
 				}
 				else {
 					this.setBytesToWrite("Fail password wrong".getBytes());

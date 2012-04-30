@@ -1,5 +1,15 @@
 package Ldap;
 
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -17,6 +27,21 @@ import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.ModificationItem;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
+
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1StreamParser;
+import org.bouncycastle.asn1.DERIA5String;
+import org.bouncycastle.asn1.DEROctetString;
+import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.x509.CRLDistPoint;
+import org.bouncycastle.asn1.x509.DistributionPoint;
+import org.bouncycastle.asn1.x509.DistributionPointName;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.X509Extension;
+import org.bouncycastle.cert.X509CRLHolder;
+import org.bouncycastle.x509.extension.X509ExtensionUtil;
 
 
 public class LDAP {
@@ -239,15 +264,18 @@ public class LDAP {
 	}
 	*/
 	
-	public static void main(String[] args) throws NamingException{
+	public static void main(String[] args) throws NamingException, KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException{
 		
 		LDAP ldap = new LDAP();
 		//ldap.init("ldap://87.98.166.65:389"); //Could be ldap://localhost:398/ou=People ...
-		ldap.initAuth("ldap://87.98.166.65:389","cn=admin,dc=pkirepository,dc=org", "PKICrypto");
+		//ldap.initAuth("ldap://87.98.166.65:389","cn=admin,dc=pkirepository,dc=org", "PKICrypto");
+		
+
+		
+		
 		//ldap.searchAllAttributs("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org", "uid", "1234");
-		Object[] tab = {"cn=BOB","sn=David"};
 		//ldap.searchAttribute("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org","cn=BOB", "uid");//userPassword
-		ldap.getAttribute("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org","cn=BOB;sn=David", "uid");
+		//ldap.getAttribute("ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org","cn=BOB", "uid");
 		//ldap.modifAttribute(DirContext.REPLACE_ATTRIBUTE, "uid=1234,ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org", "cn", "BOB");
 		
 		/*
