@@ -17,6 +17,7 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.Security;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 
 import org.bouncycastle.cert.ocsp.OCSPReq;
@@ -25,6 +26,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
 import CryptoAPI.CSRManager;
+import CryptoAPI.CertificateUtils;
+import CryptoAPI.MessageDigestUtils;
 import CryptoAPI.OCSPManager;
 
 public class clientRA {
@@ -47,9 +50,9 @@ public class clientRA {
 		
 		KeyPair		kp = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 		
-		PKCS10CertificationRequest request = CSRManager.generate_csr("Robin David", kp);
+		PKCS10CertificationRequest request = CSRManager.generate_csr("BOB David", kp);
 		
-		Socket s = new Socket("localhost", 5555); //on se connecte
+		Socket s = new Socket("localhost", 6666); //on se connecte
 		DataOutputStream out = new DataOutputStream(s.getOutputStream()); //A noter que j'utilise des DataOutputStream et pas des ObjectOutputStream
 		DataInputStream in = new DataInputStream(s.getInputStream());
 		
@@ -61,10 +64,15 @@ public class clientRA {
 		String reply  = new String(read(in));
 		System.out.println(new String(reply));
 		
-		out.write("coucou".getBytes());
+		out.write(MessageDigestUtils.digest("caca"));
 		
-		reply = new String(read(in));
-		System.out.println(reply);
+		byte[] rep = read(in);
+		X509Certificate cert  = CertificateUtils.certificateFromByteArray(rep);
+		if (cert == null) {
+			System.out.println(new String(rep));
+		}
+		else
+			System.out.println(cert.toString());
 		
 		s.close();
 		

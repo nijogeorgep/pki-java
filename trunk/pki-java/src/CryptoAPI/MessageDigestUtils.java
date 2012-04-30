@@ -1,8 +1,18 @@
 package CryptoAPI;
 
+import java.io.IOException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.MessageDigestSpi;
 import java.security.NoSuchAlgorithmException;
+
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.util.encoders.Base64;
+
+import Ldap.ldaputils;
+import Utils.Config;
 
 public class MessageDigestUtils {
 
@@ -31,8 +41,20 @@ public class MessageDigestUtils {
 		}
 	}
 	
-	public static void main(String[] args) {
-		byte[] d1 = MessageDigestUtils.digest("coucou");
-		System.out.println(MessageDigestUtils.checkDigest("coucou".getBytes(), "coucou".getBytes()));
+	public static void main(String[] args) throws NoSuchAlgorithmException, OperatorCreationException, IOException {
+		/*
+		String uid = "1234";
+		//ldaputils.setUserPassword(MessageDigestUtils.digest("caca"), "uid="+uid+","+Config.get("USERS_BASE_DN", ""));
+		
+		byte[] ldappass = ldaputils.getUserPassword(uid);
+		System.out.println(new String(ldappass));
+		
+		MessageDigest md = MessageDigest.getInstance("SHA-1");
+		md.update("cac".getBytes());
+		byte[] d1 = md.digest();
+		System.out.println(new String(d1));
+		
+		System.out.println(MessageDigestUtils.checkDigest(ldappass, d1));
+		*/
 	}
 }

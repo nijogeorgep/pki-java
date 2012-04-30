@@ -8,6 +8,7 @@ import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -35,6 +36,7 @@ import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.util.PrivateKeyFactory;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
@@ -47,6 +49,7 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 public class CSRManager {
 	
 	public static PKCS10CertificationRequest generate_csr(String name, KeyPair kp) throws NoSuchAlgorithmException, OperatorCreationException  {
+		Security.addProvider(new BouncyCastleProvider());
         KeyPair keys = kp;
         
         X500Name subjectName = new X500Name("cn="+name);
@@ -59,6 +62,7 @@ public class CSRManager {
 	
 	
 	public static X509Certificate retrieveCertificateFromCSR(PKCS10CertificationRequest inputCSR, PrivateKey caPrivate, X509Certificate caPublic, BigInteger serial) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, SignatureException, IOException, OperatorCreationException, CertificateException {   
+		Security.addProvider(new BouncyCastleProvider());
 		/* EXTENSION:																	CRITICAL
 		 * basicConstraints(false)													true
 		 * authorityKeyIdentifier keyid:always
