@@ -17,36 +17,13 @@ import javax.crypto.NoSuchPaddingException;
 
 public class NeedhamSchroeder
 {
-  static Cipher lucipher ;
-  static Cipher calcipher;
-  /*
-   * etape1
-   * -genere une nonce avec en param la clé publique de B la crypte et
-   * (return byte array)
-   * 
-   * etape 2
-   * b vers a, prend en param un bytearray + la clé privé de B, la clé publique de A
-   * ac clé déchiffre le bytearray et recup la nonce
-   * puis genere une nonce B
-   *et chiffre ces deux nonces la avec la clé publique de A
-   *renvoi un bytearray
-   *
-   *etape3
-   *prends un bytearray en param + clé publique de b, clé privé de a, nonce etape1 de a
-   *déchiffre ac privé le bytearray
-   *vérifie que la nonce de a ici est la même que celle de l'étape 1
-   *si egal, rechiffre la nonce b avec la clé b et renvoi le bytearray
-   */
   
   public static byte[] firstStep(X509Certificate b, BigInteger nonce)
   {
     try
     {
-      lucipher = Cipher.getInstance(b.getPublicKey().getAlgorithm());
-      lucipher.init(Cipher.ENCRYPT_MODE, b.getPublicKey());
       byte[] aEncodeNonce = nonce.toByteArray();
-      byte[] enc = lucipher.doFinal(aEncodeNonce);
-      return enc;
+      return AsymetricKeyManager.cipher(b, aEncodeNonce);
     }
     catch (Exception e)
     {
@@ -59,27 +36,18 @@ public class NeedhamSchroeder
   {
     try
     {
-      calcipher = Cipher.getInstance(b.getPublicKey().getAlgorithm());
-      calcipher.init(Cipher.DECRYPT_MODE, bPriv );
-      lucipher = Cipher.getInstance(a.getPublicKey().getAlgorithm());
-      lucipher.init(Cipher.ENCRYPT_MODE, a.getPublicKey());
+      byte[] dec  = AsymetricKeyManager.decipher(bPriv, nonceEncoded);
       
-      byte[] dec  = calcipher.doFinal(nonceEncoded);
-      byte[] nonceA = nonce.toByteArray();
-      
-      byte[] tmp = new byte[dec.length+nonceA.length] ;
+      byte[] tmp = new byte[dec.length+nonce.toByteArray().length] ;
       for(int i = 0 ; i < dec.length; i++)
       {
         tmp[i]=dec[i];
       }
       for(int j = dec.length ; j < tmp.length ; j++ )
       {
-        tmp[j]= nonceA[j-dec.length];
+        tmp[j]= nonce.toByteArray()[j-dec.length];
       }
-      
-      byte[] enc = lucipher.doFinal(tmp);
-      return enc;
-      
+      return AsymetricKeyManager.cipher(a, tmp);
     }
     catch (Exception e)
     {
@@ -92,13 +60,7 @@ public class NeedhamSchroeder
   {
     try
     {
-      calcipher = Cipher.getInstance(a.getPublicKey().getAlgorithm());
-      calcipher.init(Cipher.DECRYPT_MODE, aPriv );
-      lucipher = Cipher.getInstance(b.getPublicKey().getAlgorithm());
-      lucipher.init(Cipher.ENCRYPT_MODE, b.getPublicKey());
-      
-      byte[] dec  = calcipher.doFinal(data);
-      
+      byte[] dec = AsymetricKeyManager.decipher(aPriv, data);
       int tailleIni = nonceIni.toByteArray().length;
       byte[] tmp = new byte[tailleIni];
       
@@ -114,8 +76,7 @@ public class NeedhamSchroeder
         {
           tmp[j-tailleIni] = dec[j];
         }
-        byte[] enc = lucipher.doFinal(tmp);
-        return enc;
+        return AsymetricKeyManager.cipher(b, tmp);
       }
     }
     catch (Exception e)
@@ -125,13 +86,9 @@ public class NeedhamSchroeder
     return null ;
   }
   
-  
   public static BigInteger generateNonce()
   {
     Random randomGenerator = new Random();
     return   new BigInteger(53, randomGenerator);
   }
-  
-
-  
 }
