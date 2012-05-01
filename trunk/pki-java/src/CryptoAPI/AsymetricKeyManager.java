@@ -23,13 +23,24 @@ public class AsymetricKeyManager {
 	public static byte[] cipher(X509Certificate cert, byte[] data) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
 		try {
 			Cipher cipher = Cipher.getInstance("RSA");
-		    cipher.init(Cipher.ENCRYPT_MODE, cert);
+		    cipher.init(Cipher.ENCRYPT_MODE, cert.getPublicKey());
 		    return cipher.doFinal(data);
 		}
 		catch(Exception e) {
 			return null;
 		}
 	}
+	
+	public static byte[] cipher(PrivateKey pk, byte[] data) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+    try {
+      Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.ENCRYPT_MODE, pk);
+        return cipher.doFinal(data);
+    }
+    catch(Exception e) {
+      return null;
+    }
+  }
 	
 	public static byte[] decipher(PrivateKey key, byte[] data) {
 		try {
@@ -41,6 +52,17 @@ public class AsymetricKeyManager {
 			return null;
 		}
 	}
+	
+	 public static byte[] decipher(X509Certificate cert, byte[] data) {
+	    try {
+	      Cipher cipher = Cipher.getInstance("RSA");
+	        cipher.init(Cipher.DECRYPT_MODE, cert);
+	        return cipher.doFinal(data);
+	    }
+	    catch(Exception e) {
+	      return null;
+	    }
+	  }
 	
 	public static byte[] sign(PrivateKey key, byte[] data) {
 		try {
