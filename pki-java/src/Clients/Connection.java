@@ -19,7 +19,6 @@ public abstract class Connection {
 	public Connection(String ip, Integer port) {
 		this.ip = ip;
 		this.port =port;
-		
 	}
 	
 	public void connect(){
