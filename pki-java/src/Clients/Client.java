@@ -55,6 +55,7 @@ public class Client {
 	public Client() {}
 	
 	public Client(boolean server) {
+		
 		this.isServer = server;
 	}
 	
@@ -91,8 +92,8 @@ public class Client {
 		do
 		{
     System.out.println("Options ");
-    System.out.println("1 - Créer un certificat ");
-    System.out.println("2 - Révoquer un certificat ");
+    System.out.println("1 - Crï¿½er un certificat ");
+    System.out.println("2 - Rï¿½voquer un certificat ");
     System.out.println("3 - Recuperer un certificat ");
     System.out.println("4 - Demarrer en chat en tant que client ");
     System.out.println("5 - Demarrer en chat en tant que serveur ");
@@ -112,7 +113,7 @@ public class Client {
             e.printStackTrace();
           }
           break ; 
-        case('2'): // révocation d'un certificat    
+        case('2'): // rï¿½vocation d'un certificat    
           //Connection au RA et envoi de l'UID du certificat du client
           Socket raSock = new Socket("localhost",7000);       
           OutputStream stream = raSock.getOutputStream();
@@ -131,17 +132,17 @@ public class Client {
           int pwdCorrect = inStream1.read();
           if(pwdCorrect == 1)
           {
-            //Réponse du RA ( Certificat revoqué ou non )
+            //Rï¿½ponse du RA ( Certificat revoquï¿½ ou non )
             ObjectInputStream inStream = new ObjectInputStream(raSock.getInputStream());
             String s = inStream.readLine();
             System.out.println(s);
           }
           else
           {
-            System.out.println("erreur de mot de passe."); 
+            System.out.println("erreur de mot de passe.");
           }
           break ; 
-        case('3'):// récupération d'un certificat
+        case('3'):// rï¿½cupï¿½ration d'un certificat
                 recupererCertificat();
             break ; 
         case('4'):// connection en mode client
@@ -178,12 +179,12 @@ public class Client {
   {
     System.out.println("Donnez l'UID de votre correspondant");
     String uid = saisieString();
-    //LDAP recheche un certificat avec l'uid qu'on lui a donné.
+    //LDAP recheche un certificat avec l'uid qu'on lui a donnï¿½.
     X509Certificate c = ldaputils.getCertificate(uid);
     //ajout du certificat dans le keystore.
     System.out.println(c.toString());
     ks.setCertificateEntry(Utils.Config.get("ALIAS", "default_val"), c);
-    System.out.println("Certificat ajouté");
+    System.out.println("Certificat ajoutï¿½");
   }
 
   private static PKCS10CertificationRequest creerCertificat() throws Exception
@@ -195,7 +196,7 @@ public class Client {
     String surname,commonname,pwd ;
     System.out.println("Entrez votre nom");
     surname = saisieString();
-    System.out.println("Entrez votre prénom");
+    System.out.println("Entrez votre prï¿½nom");
     commonname = saisieString();
     System.out.println("Entrez votre mot de passe");
     pwd = saisieString();

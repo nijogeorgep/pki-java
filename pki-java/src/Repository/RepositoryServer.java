@@ -1,6 +1,7 @@
 package Repository;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -60,7 +61,7 @@ public class RepositoryServer {
 		//----- Added -----
 		try {
 			this.ks = KeyStore.getInstance(KeyStore.getDefaultType()); //Je load tout les certificats en mémoire pour les avoir directement sous la main
-			this.ks.load(new FileInputStream("src/Playground/mykeystore.ks"), "passwd".toCharArray());
+			this.ks.load(new FileInputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
 			this.caSignerCert = (X509Certificate) ks.getCertificate("CA_SigningOnly_Certificate");
 			this.caSignerKey = (PrivateKey) ks.getKey("CA_SigningOnly_Private", Config.get("PASSWORD_CA_SIG","").toCharArray());
 		} catch (Exception e) { e.printStackTrace();}
@@ -100,16 +101,23 @@ public class RepositoryServer {
                                 continue; // avoid an CancelledKeyexception (because if we close client the key (sk) is not valid anymore and if(sk.isWritable()) will raise exception)
                             }
                             else {
-                            	OCSPReq request  = new OCSPReq(readBuff(byteread)); //Je reconstruit cash la request OCSP a partir de ce que j'ai lu
-                            	
-                            	System.out.println(request.getEncoded()); //pour le debug
-                            	
-                            	OCSPResp response = OCSPManager.generateOCSPResponse(request, this.caSignerCert, this.caSignerKey); //Je génère la réponse (a noter ça aurait pu être bien de le mettre en sk.writable)
-                            	
-                            	System.out.println(response.getEncoded()); //pour le debug
-                            	
-                            	sk.attach(response.getEncoded()); //met le byte[] en attachment pour qu'il soit renvoyé quand il sera passé en write
-                                
+                            	byte[] received = readBuff(byteread);
+                            	try {
+	                            	OCSPReq request  = new OCSPReq(received); //Je reconstruit cash la request OCSP a partir de ce que j'ai lu
+	                            	
+	                            	System.out.println(request.getEncoded()); //pour le debug
+	                            	
+	                            	OCSPResp response = OCSPManager.generateOCSPResponse(request, this.caSignerCert, this.caSignerKey); //Je génère la réponse (a noter ça aurait pu être bien de le mettre en sk.writable)
+	                            	
+	                            	System.out.println(response.getEncoded()); //pour le debug
+	                            	
+	                            	sk.attach(response.getEncoded()); //met le byte[] en attachment pour qu'il soit renvoyé quand il sera passé en write
+	                            	}
+                            	catch(Exception e) {
+                            		BigInteger b = new BigInteger(received);
+                            		System.out.println("BigIn rec: "+b);
+                            		sk.attach(b.toByteArray());
+                            	}
                                 sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE); //on le passe en write
                             }						
                         } 
