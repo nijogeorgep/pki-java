@@ -88,7 +88,7 @@ public class NeedhamSchroeder
     return null ;
   }
   
-  public static byte[] thirdStep(byte[] nonce, X509Certificate b, X509Certificate a, BigInteger nonceIni, PrivateKey aPriv) 
+  public static byte[] thirdStep(byte[] data, X509Certificate b, X509Certificate a, BigInteger nonceIni, PrivateKey aPriv) 
   {
     try
     {
@@ -97,26 +97,23 @@ public class NeedhamSchroeder
       lucipher = Cipher.getInstance(b.getPublicKey().getAlgorithm());
       lucipher.init(Cipher.ENCRYPT_MODE, b.getPublicKey());
       
-      byte[] dec  = calcipher.doFinal(nonce);
+      byte[] dec  = calcipher.doFinal(data);
       
       int tailleIni = nonceIni.toByteArray().length;
       byte[] tmp = new byte[tailleIni];
       
-      for(int i = 0 ; i < tmp.length ; i++)
+      for(int i = 0 ; i < tailleIni ; i++)
       {
-        tmp[i]=nonce[i];
+        tmp[i]=dec[i];
       }
-     System.out.println("taille ini " + tailleIni + "    vs taille tmp " +tmp.length ); 
-      System.out.println("nonce ini décodé " + new BigInteger(tmp));
       
       if( nonceIni.equals(new BigInteger(tmp)))
       {
-        tmp = new byte[nonce.length-tailleIni];
-        for(int j = tailleIni ; j < nonce.length ; j++)
+        tmp = new byte[dec.length-tailleIni];
+        for(int j = tailleIni ; j < dec.length ; j++)
         {
-          tmp[j-tailleIni] = nonce[j];
+          tmp[j-tailleIni] = dec[j];
         }
-        System.out.println("nonce 2 décodé " + new BigInteger(dec));
         byte[] enc = lucipher.doFinal(tmp);
         return enc;
       }
