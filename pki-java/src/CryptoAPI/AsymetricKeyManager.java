@@ -6,6 +6,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.Signature;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
@@ -41,11 +42,37 @@ public class AsymetricKeyManager {
 		}
 	}
 	
+	public static byte[] sign(PrivateKey key, byte[] data) {
+		try {
+			Signature sig = Signature.getInstance("SHA1withRSA");
+		    sig.initSign(key); //ou initVerify avec pubkey
+		    
+		    sig.update(data);
+		    return sig.sign();
+		}
+		catch(Exception e) {
+			return null;
+		}
+	}
 	
+	public static boolean verifySig(X509Certificate cert, byte[] dataoriginal, byte[] datasigned) {
+		try {
+			 Signature sig = Signature.getInstance("SHA1withRSA");
+		     sig.initVerify(cert.getPublicKey()); //ou initVerify avec pubkey
+		     sig.update(dataoriginal);
+		     return sig.verify(datasigned);
+		}
+		catch (Exception e) {
+			return false;
+		}
+	}
 	
 	public static void main(String[] args) throws NoSuchAlgorithmException, OperatorCreationException, CertificateException, IOException {
 	    KeyPair   kp = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 	    X509Certificate cert =  CertificateManager.createSelfSignedCertificate("Coucou toto", kp);
-	    System.out.println(cert.getPublicKey().getAlgorithm());
+	    byte[] s = "coucou".getBytes();
+	    byte[] signed = sign(kp.getPrivate(), s);
+	    System.out.println(verifySig(cert, s, signed));
+	    
 	}
 }
