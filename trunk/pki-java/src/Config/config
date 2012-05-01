@@ -7,8 +7,8 @@ LDAP_PASS=PKICrypto
 USERS_BASE_DN=ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org
 
 #Client Config
-CLIENT_CERT_ALIAS=personne1_certificat
-CLIENT_KEY_ALIAS=personne1_private
+CLIENT_CERT_ALIAS=robin1_certificat
+CLIENT_KEY_ALIAS=robin1_private
 CLIENT_KEY_PASS=monpassP1
 USER_KEYSTORE_PATH=src/Playground/test_keystore.ks
 USER_KEYSTORE_PASS=passwd

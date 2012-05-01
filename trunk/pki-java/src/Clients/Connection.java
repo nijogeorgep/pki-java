@@ -22,7 +22,7 @@ public abstract class Connection {
 		
 	}
 	
-	public void run(){
+	public void connect(){
 		try {
 			this.s = new Socket(this.ip, this.port);
 			this.out = new DataOutputStream(s.getOutputStream()); //A noter que j'utilise des DataOutputStream et pas des ObjectOutputStream
@@ -33,8 +33,14 @@ public abstract class Connection {
 		}
 	}
 	
+	public abstract void run();
+	
 	public boolean finishedWell() {
 		return finishedOK;
+	}
+	
+	public String getErrorMessage() {
+		return this.errormessage;
 	}
 	
 	public byte[] read() throws IOException {
@@ -51,5 +57,8 @@ public abstract class Connection {
 		return res_fitted;
 	}
 	
+	public void close() throws IOException {
+		this.s.close();
+	}
 	
 }

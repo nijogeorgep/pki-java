@@ -25,6 +25,8 @@ import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
+import Utils.Config;
+
 import CryptoAPI.CSRManager;
 import CryptoAPI.CertificateUtils;
 import CryptoAPI.MessageDigestUtils;
@@ -51,8 +53,9 @@ public class clientRAcsr {
 		KeyPair		kp = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 		
 		PKCS10CertificationRequest request = CSRManager.generate_csr("BOB David", kp);
-		
-		Socket s = new Socket("localhost", 6666); //on se connecte
+		int port = new Integer(Config.get("PORT_CA","6666"));
+		System.out.println(port);
+		Socket s = new Socket( Config.get("IP_CA","localhost"), new Integer( port )); //on se connecte
 		DataOutputStream out = new DataOutputStream(s.getOutputStream()); //A noter que j'utilise des DataOutputStream et pas des ObjectOutputStream
 		DataInputStream in = new DataInputStream(s.getInputStream());
 		

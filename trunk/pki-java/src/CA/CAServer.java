@@ -72,7 +72,7 @@ public class CAServer {
     
   public CAServer() throws IOException, InterruptedException {
     this.s = ServerSocketChannel.open();
-    this.s.socket().bind(new InetSocketAddress(5555));    //arbitrarily set to 5555
+    this.s.socket().bind(new InetSocketAddress( new Integer(Config.get("PORT_CA","6666"))  ));    //arbitrarily set to 5555
     this.s.configureBlocking(false);
     this.masterBuffer = ByteBuffer.allocate(4096);
     this.sel = Selector.open();

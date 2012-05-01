@@ -58,7 +58,9 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 					//---------- Connection au CA -------------
 					Socket s;
 					try {
-						s = new Socket("localhost", 5555);
+						int port = new Integer(Config.get("PORT_CA","6666"));
+						s = new Socket( Config.get("IP_CA","localhost"), new Integer( port ));
+						//s = new Socket("localhost", 5555);
 						DataOutputStream out = new DataOutputStream(s.getOutputStream()); //A noter que j'utilise des DataOutputStream et pas des ObjectOutputStream
 						DataInputStream in = new DataInputStream(s.getInputStream());
 						

@@ -14,4 +14,12 @@ public class ClientUtils {
 			return null;
 		}
 	}
+	
+	  public static String saisieString() {
+	    Scanner sc = new Scanner(System.in);
+	    String s = sc.nextLine();
+	    return s;
+	  }
+	  
+	
 }
