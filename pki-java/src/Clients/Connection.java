@@ -1,16 +1,55 @@
 package Clients;
 
-public class Connection {
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
 
-	/* Attributs:
-	 * 		ip
-	 * 		port
-	 * 		message d'erreur
-	 * 
-	 * Methodes:
-	 * 		finishedWell
-	 * 		read
-	 * 
-	 */
+public abstract class Connection {
+	String ip;
+	Integer port;
+	String errormessage;
+	boolean finishedOK;
+	Socket s;
+	DataOutputStream out;
+	DataInputStream in;
+	
+	public Connection(String ip, Integer port) {
+		this.ip = ip;
+		this.port =port;
+		
+	}
+	
+	public void run(){
+		try {
+			this.s = new Socket(this.ip, this.port);
+			this.out = new DataOutputStream(s.getOutputStream()); //A noter que j'utilise des DataOutputStream et pas des ObjectOutputStream
+			this.in = new DataInputStream(s.getInputStream());
+		}
+		catch(Exception e) {
+			this.finishedOK =false;
+		}
+	}
+	
+	public boolean finishedWell() {
+		return finishedOK;
+	}
+	
+	public byte[] read() throws IOException {
+		byte[] res = new byte[4096]; //Créer un tableau très grand. (Je m'attends a tout recevoir d'un coup j'ai pas envie de me faire chier)
+		int read = this.in.read(res); //Je lis
+		if (read == -1) { //si on a rien lu c'est que le serveur a eu un problème
+				throw new IOException();
+		}
+		
+		byte[] res_fitted = new byte[read]; //je déclare un tableau de la taille juste
+		for (int i=0; i < read; i++) { //je recopie le byte dedans
+			res_fitted[i] = res[i];
+		}
+		return res_fitted;
+	}
+	
 	
 }

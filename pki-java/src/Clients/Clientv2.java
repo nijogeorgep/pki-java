@@ -93,6 +93,12 @@ public class Clientv2 {
 				break;
 			case(4):
 				//On démarre la socket en tant que client et on essaye de démarrer une session
+				this.s = new Socket("lcoalhsot", 34);
+				NeedhamShroederClient cli = new NeedhamShroederClient(s);
+				clir.run();
+				if cli.isOK() {
+					s.write
+				}
 				break;
 			case(5):
 				//On démarre la socket en tant que server
