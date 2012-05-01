@@ -6,5 +6,4 @@ public interface CommunicationHandler {
 	public byte[] getBytesToWrite();
 	public void resetBytesToWrite();
 	
-	public Integer getDistinguishNumber();
 }

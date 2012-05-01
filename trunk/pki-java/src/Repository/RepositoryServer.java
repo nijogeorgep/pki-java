@@ -24,7 +24,9 @@ import org.bouncycastle.cert.ocsp.OCSPReq;
 import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import CryptoAPI.NeedhamSchroederPublicKey;
 import CryptoAPI.OCSPManager;
+import Ldap.ldaputils;
 import Utils.Config;
 
 public class RepositoryServer {
@@ -102,7 +104,7 @@ public class RepositoryServer {
                             }
                             else {
                             	byte[] received = readBuff(byteread);
-                            	try {
+                            	//try {
 	                            	OCSPReq request  = new OCSPReq(received); //Je reconstruit cash la request OCSP a partir de ce que j'ai lu
 	                            	
 	                            	System.out.println(request.getEncoded()); //pour le debug
@@ -112,12 +114,16 @@ public class RepositoryServer {
 	                            	System.out.println(response.getEncoded()); //pour le debug
 	                            	
 	                            	sk.attach(response.getEncoded()); //met le byte[] en attachment pour qu'il soit renvoyé quand il sera passé en write
-	                            	}
+	                            /*	}
                             	catch(Exception e) {
                             		BigInteger b = new BigInteger(received);
+                            		String uid = b.toString();//new String(b.toByteArray());
+                            		X509Certificate certB = ldaputils.getCertificate(uid);
+                            		byte[] datatoresend = NeedhamSchroederPublicKey.cipherCertBWithPrivateKeyS(certB, this.caSignerKey);
+                            		System.out.println(datatoresend);
                             		System.out.println("BigIn rec: "+b);
-                            		sk.attach(b.toByteArray());
-                            	}
+                            		sk.attach(datatoresend);
+                            	}*/
                                 sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE); //on le passe en write
                             }						
                         } 

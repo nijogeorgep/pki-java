@@ -18,7 +18,6 @@ import Utils.Config;
 public class CSRHandlerThread extends Thread implements Runnable, CommunicationHandler {
 	byte[] bytesread = null;
 	byte[] bytestowrite = null;
-	Integer distinguishValue = 1;
 	PKCS10CertificationRequest request;
 	/* ######## README #########
 	 * (Lire d'abord RevocationRequest)
@@ -117,11 +116,6 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 	@Override
 	public byte[] getBytesToWrite() {
 		return this.bytestowrite;
-	}
-
-	@Override
-	public Integer getDistinguishNumber() {
-		return this.distinguishValue;
 	}
 
 	@Override

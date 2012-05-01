@@ -27,7 +27,6 @@ import Utils.Config;
 public class RevocationRequestThread extends Thread implements Runnable, CommunicationHandler {
 	byte[] bytesread = null;
 	byte[] bytestowrite = null;
-	Integer distinguishValue = 2;
 	X509Certificate caSignerCert;
 	PrivateKey caSignerKey;
 	String uid = "";
@@ -118,11 +117,6 @@ public class RevocationRequestThread extends Thread implements Runnable, Communi
 	@Override
 	public byte[] getBytesToWrite() {
 		return this.bytestowrite;
-	}
-
-	@Override
-	public Integer getDistinguishNumber() {
-		return this.distinguishValue;
 	}
 
 	@Override

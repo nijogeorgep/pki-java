@@ -22,6 +22,10 @@ import org.bouncycastle.cert.ocsp.OCSPReq;
 import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import CryptoAPI.AsymetricKeyManager;
+import CryptoAPI.CertificateUtils;
+import CryptoAPI.NeedhamSchroeder;
+import CryptoAPI.NeedhamSchroederPublicKey;
 import CryptoAPI.OCSPManager;
 
 public class clientocsp {
@@ -76,8 +80,11 @@ public class clientocsp {
 		
 		System.out.println(OCSPManager.analyseResponse(response, request, signerCert)); //Ensuite j'appelle la fonction qui me retourne le résultat de l'analyse de la réponse.
 		*/
-		BigInteger val = BigInteger.valueOf(35);
+		BigInteger val = new BigInteger("1234");
 		out.write(val.toByteArray());
-		System.out.println(new BigInteger(read(in)));
+		byte[] rec = read(in);
+		byte[] rawcert = AsymetricKeyManager.decipher(signerCert, rec);
+		System.out.println(CertificateUtils.certificateFromByteArray(rawcert));
+		//NeedhamSchroederPublicKey.cipherNonceAWithPublicKeyB(NeedhamSchroeder.generateNonce(), rec, signerCert);
 	}
 }
