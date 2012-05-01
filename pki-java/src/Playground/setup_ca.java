@@ -62,6 +62,7 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import CryptoAPI.CRLManager;
 import CryptoAPI.CSRManager;
 import CryptoAPI.CertificateManager;
+import CryptoAPI.CertificateUtils;
 import Ldap.ldaputils;
 import Utils.Config;
 
@@ -72,13 +73,6 @@ public class setup_ca {
 			ks.deleteEntry(alias);
 	}
 	
-	public static Certificate[] createNewChain(Certificate[] chain, X509Certificate cert) {
-		Certificate[] newchain = new Certificate[chain.length+1];
-		for(int i=0; i < chain.length ; i ++)
-			newchain[i] = chain[i];
-		newchain[chain.length] = cert;
-		return newchain;
-	}
 	
 	public static void main(String[] args) throws Exception {
 		Security.addProvider(new BouncyCastleProvider());
@@ -179,7 +173,7 @@ public class setup_ca {
 		ks.setCertificateEntry("personne1_certificat", personne1_certificat);
 		Certificate[] chain = ks.getCertificateChain("CA_IntermediairePeople_Private");
 
-		ks.setKeyEntry("personne1_private", keyPairPersonne1.getPrivate(), "monpassP1".toCharArray(), createNewChain(chain, personne1_certificat));
+		ks.setKeyEntry("personne1_private", keyPairPersonne1.getPrivate(), "monpassP1".toCharArray(), CertificateUtils.createNewChain(chain, personne1_certificat));
 		//--------------------------------------
 		
 		

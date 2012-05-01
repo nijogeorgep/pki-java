@@ -2,6 +2,7 @@ package Clients;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -23,27 +24,40 @@ public class Clientv2 {
 	KeyStore ks;
 	X509Certificate myCert;
 	PrivateKey myKey;
+	String keystorepath;
+	String keystorepass;
+	String aliascert;
+	String aliaskey;
+	String keypass;
 	
 	public Clientv2() {
 		try {
 			try {
 				ks = KeyStore.getInstance(KeyStore.getDefaultType());
-				String userks = Config.get("USER_KEYSTORE_PATH","mykeystore.ks");
-				String userkspass = Config.get("USER_KEYSTORE_PASS","passwd");
-				ks.load(new FileInputStream(userks), userkspass.toCharArray());
+				this.keystorepath = Config.get("USER_KEYSTORE_PATH","mykeystore.ks");
+				this.keystorepass = Config.get("USER_KEYSTORE_PASS","passwd");
+				ks.load(new FileInputStream(this.keystorepath), this.keystorepass.toCharArray());
 			}
 			catch(FileNotFoundException e) {
 					ks.load(null);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			String aliascert = Config.get("CLIENT_CERT_ALIAS","mycert");
-			String aliaskey = Config.get("CLIENT_KEY_ALIAS","mykey");
-			String keypass= Config.get("CLIENT_KEY_PASS","mypass");
+			this.aliascert = Config.get("CLIENT_CERT_ALIAS","mycert");
+			this.aliaskey = Config.get("CLIENT_KEY_ALIAS","mykey");
+			this.keypass = Config.get("CLIENT_KEY_PASS","mypass");
 			myCert = (X509Certificate) ks.getCertificate(aliascert);
-			myKey = (PrivateKey) ks.getKey(aliaskey, keypass.toCharArray());
+			myKey = (PrivateKey) ks.getKey(aliaskey, this.keypass.toCharArray());
 		}
 		catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void saveKeystoreStat() {
+		try {
+			this.ks.store(new FileOutputStream(this.keystorepath), this.keystorepass.toCharArray());
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -83,7 +97,20 @@ public class Clientv2 {
 			System.out.println("Val: "+num);
 			switch(num) {
 			case(1):
-				//On appelle la méthode qui permet de créer un certificat
+				if(this.myCert ==null && this.myKey==null) {
+					ConnectionCSR cli = new ConnectionCSR(Config.get("IP_RA", "localhost"), new Integer(Config.get("PORT_RA","5555")));
+					cli.connect();
+					cli.run();
+					if(cli.finishedWell()) {
+						System.out.println("OK");
+						cli.storeCertAndKey(this.ks, this.aliascert, this.aliaskey, this.keypass);
+					}
+					else
+						System.out.println(cli.getErrorMessage());
+					cli.close();
+				}
+				else
+					System.out.println("The certificate with alias: "+this.aliascert+" and "+this.aliaskey+" already exists !");
 				break;
 			case(2):
 				//On appelle la méthode qui permet de révoquer un certificat
@@ -93,12 +120,12 @@ public class Clientv2 {
 				break;
 			case(4):
 				//On démarre la socket en tant que client et on essaye de démarrer une session
-				this.s = new Socket("lcoalhsot", 34);
+				/*this.s = new Socket("lcoalhsot", 34);
 				NeedhamShroederClient cli = new NeedhamShroederClient(s);
 				clir.run();
 				if cli.isOK() {
 					s.write
-				}
+				}*/
 				break;
 			case(5):
 				//On démarre la socket en tant que server

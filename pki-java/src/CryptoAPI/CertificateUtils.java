@@ -2,6 +2,7 @@ package CryptoAPI;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 
 import org.bouncycastle.asn1.x509.CRLDistPoint;
@@ -29,4 +30,12 @@ public class CertificateUtils {
 		}
 	}
 
+	public static Certificate[] createNewChain(Certificate[] chain, X509Certificate cert) {
+		Certificate[] newchain = new Certificate[chain.length+1];
+		for(int i=0; i < chain.length ; i ++)
+			newchain[i] = chain[i];
+		newchain[chain.length] = cert;
+		return newchain;
+	}
+	
 }

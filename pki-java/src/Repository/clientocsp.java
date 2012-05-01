@@ -58,7 +58,10 @@ public class clientocsp {
 		X509Certificate	 cert = (X509Certificate) ks.getCertificate("personne1_certificat"); //certificat du client dont on veut vérifier l'identitée
 		X509Certificate issuerCert = (X509Certificate) ks.getCertificate("CA_IntermediairePeople_Certificate"); //certificat qui a signé le client (ont en a besoin pour la génération de csr)
 		X509Certificate signerCert = (X509Certificate) ks.getCertificate("CA_SigningOnly_Certificate"); //certificat qui signe les crl/ocsp on l'utilise dans analyseOCSPResponse pour vérifier la signature de la reponse
-				
+		
+		ks.setCertificateEntry("CA_IntermediairePeople_Certificate", issuerCert);
+		
+		System.exit(0);
 		Socket s = new Socket("localhost", 5555); //on se connecte
 		DataOutputStream out = new DataOutputStream(s.getOutputStream()); //A noter que j'utilise des DataOutputStream et pas des ObjectOutputStream
 		DataInputStream in = new DataInputStream(s.getInputStream());
@@ -83,8 +86,8 @@ public class clientocsp {
 		BigInteger val = new BigInteger("1234");
 		out.write(val.toByteArray());
 		byte[] rec = read(in);
-		byte[] rawcert = AsymetricKeyManager.decipher(signerCert, rec);
-		System.out.println(CertificateUtils.certificateFromByteArray(rawcert));
+		//byte[] rawcert = AsymetricKeyManager.decipher(signerCert, rec);
+		//System.out.println(CertificateUtils.certificateFromByteArray(rawcert));
 		//NeedhamSchroederPublicKey.cipherNonceAWithPublicKeyB(NeedhamSchroeder.generateNonce(), rec, signerCert);
 	}
 }

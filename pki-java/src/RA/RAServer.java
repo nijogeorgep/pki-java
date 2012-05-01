@@ -45,7 +45,7 @@ public class RAServer {
     
 	public RAServer() throws IOException, InterruptedException {
 		this.s = ServerSocketChannel.open();
-		this.s.socket().bind(new InetSocketAddress(6666));		//arbitrarily set to 5555
+		this.s.socket().bind(new InetSocketAddress( new Integer(Config.get("PORT_RA", "5555"))) );		//arbitrarily set to 5555
 		this.s.configureBlocking(false);
 		this.masterBuffer = ByteBuffer.allocate(4096);
 		
