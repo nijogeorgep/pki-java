@@ -48,7 +48,7 @@ public class ClientManager
       ldaputils.deleteUser("uid="+ldaputils.getUIDFromSubject("CN="+commonname.replace(" ", "-") + " " + surname.replace(" ", "-"))+";"+ Config.get("USERS_BASE_DN", ""));
       System.out.println("Utilisateur supprimer avec succès");
     }
-    catch (IOException e)
+    catch (Exception e)
     {
       System.out.println("Utilisateur inconnu");
       e.printStackTrace();
