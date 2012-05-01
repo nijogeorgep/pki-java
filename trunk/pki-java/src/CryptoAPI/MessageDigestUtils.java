@@ -28,6 +28,18 @@ public class MessageDigestUtils {
 		}
 	}
 	
+	public static byte[] digest(byte[] data) {
+		MessageDigest md;
+		try {
+			md = MessageDigest.getInstance("SHA-1");
+			md.update(data);
+	        return md.digest();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
 	public static boolean checkDigest(byte[] d1, byte[] d2) {
 		MessageDigest md;
 		try {
