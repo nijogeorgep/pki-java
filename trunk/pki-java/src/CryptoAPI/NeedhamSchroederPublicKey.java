@@ -32,11 +32,11 @@ public class NeedhamSchroederPublicKey
     return null ;
   }
   
-  public static byte[] sCryptKeyB(X509Certificate b, PrivateKey sPrivKey, BigInteger nonce)
+  public static byte[] cipherCertBWithPrivateKeyS(X509Certificate b, PrivateKey sPrivKey)
   {
     try
     {
-      return AsymetricKeyManager.sign(sPrivKey, b.getEncoded());
+      return AsymetricKeyManager.cipher(sPrivKey, b.getEncoded());
     }
     catch (Exception e) 
     {
@@ -45,12 +45,12 @@ public class NeedhamSchroederPublicKey
     return null ;
   }
   
-  public static byte[] aCryptNonceA(BigInteger nonce, byte[] dataBCertificate)
+  public static byte[] cipherNonceAWithPublicKeyB(BigInteger nonceA, byte[] encodedDataBCertificate, X509Certificate s)
   {
     try
     {
-      X509Certificate certB = CertificateUtils.certificateFromByteArray(dataBCertificate);
-      return AsymetricKeyManager.cipher(certB, nonce.toByteArray());
+      X509Certificate certB = CertificateUtils.certificateFromByteArray(AsymetricKeyManager.decipher(s, encodedDataBCertificate));
+      return AsymetricKeyManager.cipher(certB, nonceA.toByteArray());
     }
     catch (Exception e)
     {
@@ -59,12 +59,23 @@ public class NeedhamSchroederPublicKey
     return null ;
   }
   
-  public static byte[] bCryptNonceA(BigInteger nonceA, byte[] dataAcertificate)
+  public static byte[] cipherNonceANonceBWithPublicKeyA(byte[] dataEncodedNonceA, X509Certificate certA, PrivateKey pkB, BigInteger nonceB)
   {
     try
     {
-      X509Certificate certA = CertificateUtils.certificateFromByteArray(dataAcertificate);
-      return AsymetricKeyManager.cipher(certA, nonceA.toByteArray());
+      byte[] nonceA = AsymetricKeyManager.decipher(pkB, dataEncodedNonceA);
+      byte[] nonceBinByte = nonceB.toByteArray();
+      byte[] tmp = new byte[nonceA.length+nonceBinByte.length] ;
+      for(int i = 0 ; i < nonceA.length; i++)
+      {
+        tmp[i]=nonceA[i];
+      }
+      for(int j = nonceA.length ; j < tmp.length ; j++ )
+      {
+        tmp[j]= nonceBinByte[j-nonceA.length];
+      }
+      
+      return AsymetricKeyManager.cipher(certA, tmp);
     }
     catch (Exception e)
     {
@@ -73,18 +84,37 @@ public class NeedhamSchroederPublicKey
     return null ;
   }
   
-  public static byte[] aCryptNonceB(byte[] toEncodeNonceB, byte[] dataBCertificate)
+  public static byte[] cipherNonceBWithPublicKeyB(byte[] dataEncodedNonceANonceB, BigInteger nonceA, PrivateKey pkA, X509Certificate certB)
   {
     try
     {
-      X509Certificate certB = CertificateUtils.certificateFromByteArray(dataBCertificate);
-      return AsymetricKeyManager.cipher(certB, toEncodeNonceB);
+       byte[] noncesAB = AsymetricKeyManager.decipher(pkA, dataEncodedNonceANonceB);
+       int tailleIni = nonceA.toByteArray().length;
+       
+       byte[] tmp = new byte[tailleIni];
+       for(int i = 0 ; i < tailleIni ; i++)
+       {
+         tmp[i]=noncesAB[i];
+       }
+       if( nonceA.equals(new BigInteger(tmp)))
+       {
+         tmp = new byte[noncesAB.length-tailleIni];
+         for(int j = tailleIni ; j < noncesAB.length ; j++)
+         {
+           tmp[j-tailleIni] = noncesAB[j];
+         }
+         return AsymetricKeyManager.cipher(certB, tmp);
+       }
+       else
+       {
+         return null ;
+       }
     }
     catch (Exception e)
     {
       e.printStackTrace();
+      return null;
     }
-    return null ;
   }
   
   public static void main(String[] args)
