@@ -13,6 +13,7 @@ import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Random;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -142,6 +143,12 @@ public class NeedhamSchroederPublicKey
       tmp[j]= bArray[j-aArray.length];
     }
     return MessageDigestUtils.digest(tmp);
+  }
+  
+  public static BigInteger generateNonce()
+  {
+    Random randomGenerator = new Random();
+    return   new BigInteger(53, randomGenerator);
   }
   
   public static void main(String[]args) throws NoSuchAlgorithmException, OperatorCreationException, CertificateException, IOException
