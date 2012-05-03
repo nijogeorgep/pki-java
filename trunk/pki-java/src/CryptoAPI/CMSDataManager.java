@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -91,8 +92,21 @@ public class CMSDataManager {
 		}
 	}
 	
+	public static BigInteger getSerialFromSignedData(CMSSignedData data) {
+		/*
+		Store  certs = data.getCertificates();
+		SignerInformation signer = (SignerInformation) data.getSignerInfos().getSigners().iterator().next(); 
+	    X509CertificateHolder cert = (X509CertificateHolder) certs.getMatches(signer.getSID()).iterator().next();
+	    return cert.getSerialNumber();
+	    */
+		return ((SignerInformation)data.getSignerInfos().getSigners().iterator().next()).getSID().getSerialNumber();
+		//return ((X509Certificate) data.getCertificates().getMatches( ((SignerInformation) data.getSignerInfos().getSigners().iterator().next()).getSID()).iterator().next()).getSerialNumber();
+	}
 	
 	public static Object verifySignedMessage(CMSSignedData data) {
+		/*
+		 * Verify the signature using the cert embeded into the signed object
+		 */
 		Security.addProvider(new BouncyCastleProvider()); 
 		Object datareturn = null;
 		Store  certs = data.getCertificates();
@@ -112,6 +126,9 @@ public class CMSDataManager {
 	
 	
 	public static Object verifySignedMessage(CMSSignedData data, X509Certificate cert) {
+		/*
+		 * Verify the signature but does not use the certificate in the signed object
+		 */
 		Security.addProvider(new BouncyCastleProvider()); 
 		Object datareturn = null;
 		
@@ -127,6 +144,9 @@ public class CMSDataManager {
 	
 	
 	public static byte[] encryptMessage(byte[] data, X509Certificate cert)  {
+		/*
+		 * encrypt the data given with the cert
+		 */
 		Security.addProvider(new BouncyCastleProvider()); 
 		CMSEnvelopedDataStreamGenerator edGen = new CMSEnvelopedDataStreamGenerator();
         try {
@@ -148,6 +168,9 @@ public class CMSDataManager {
 	
 	
 	public static byte[] decryptMessage(byte[] data,X509Certificate cert, PrivateKey key) {
+		/*
+		 * Decrypt the message and check the signature, that's why it require the cert of the signer
+		 */
 		Security.addProvider(new BouncyCastleProvider()); 
         byte[] cleardata = null;
 		try {
@@ -173,21 +196,29 @@ public class CMSDataManager {
         return cleardata;
 	}
 	
-	public static byte[] decryptMessage(byte[] data, PrivateKey key) {
+	public static Object decryptMessage(byte[] data, PrivateKey key) {
+		/*
+		 * Just decrypt the message with the given private key
+		 */
 		Security.addProvider(new BouncyCastleProvider()); 
-        byte[] cleardata = null;
+        //byte[] cleardata = null;
 		try {
 	        // initialise parser 
 	         CMSEnvelopedDataParser envDataParser = new CMSEnvelopedDataParser(data); 
 
 	        RecipientInformation recipient = (RecipientInformation) envDataParser.getRecipientInfos().getRecipients().iterator().next();
 	        byte[] envelopedData = recipient.getContent(new JceKeyTransEnvelopedRecipient(key));
-
-	        CMSSignedData signedDataIn = new CMSSignedData(envelopedData);
-	        cleardata = (byte[]) signedDataIn.getSignedContent().getContent(); 
+	        
+	        //CMSSignedData signedDataIn = new CMSSignedData(envelopedData);
+	        //cleardata = (byte[]) signedDataIn.getSignedContent().getContent(); 
+	        return envelopedData;
 		}
 		catch(Exception e) {}
-        return cleardata;
+        return null;
+	}
+	
+	public static Object getContentFromSignedData(CMSSignedData data) {
+		return data.getSignedContent().getContent();
 	}
 	
 	public static void main(String[] args) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, UnrecoverableKeyException {
@@ -198,7 +229,7 @@ public class CMSDataManager {
 		PrivateKey cakey = (PrivateKey) ks.getKey("CA_SigningOnly_Private", Config.get("PASSWORD_CA_SIG","").toCharArray());
 		
 		byte[] mess = "coucuo".getBytes();
-		
+		/*
 		CMSSignedData datasigned = signMessage(cert,cakey, mess);
 		//System.out.println(verifySignedMessage(datasigned) != null);
 		//System.out.println(new String((byte[]) verifySignedMessage(datasigned)));
@@ -208,9 +239,11 @@ public class CMSDataManager {
 		
 		System.out.println(decryptMessage(encrypted, cert, cakey) != null);
 		System.out.println(new String((byte[]) decryptMessage(encrypted, cert, cakey)));
-		
+		*/
 		//Ou en plus simple
-		CMSSignedData d = signMessage(cert, cakey, mess);
+		CMSSignedData d = signMessageSimple(cert, cakey, mess);
+		SignerInformation siginf = (SignerInformation) d.getSignerInfos().getSigners().iterator().next();
+		System.out.println();
 		byte[] ec = encryptMessage(d.getEncoded(), cert);
 		System.out.println(new String((byte[]) decryptMessage(ec, cakey)));
 	}

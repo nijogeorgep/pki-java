@@ -21,5 +21,13 @@ public class ClientUtils {
 	    return s;
 	  }
 	  
+	  public static String readIdentity() {
+		  String surname,commonname;
+		    System.out.println("Nom: ");
+		    surname = ClientUtils.saisieString();
+		    System.out.println("Prenom: ");
+		    commonname = ClientUtils.saisieString();
+		    return commonname.replace(" ", "-") + " " + surname.replace(" ", "-");
+	  }
 	
 }

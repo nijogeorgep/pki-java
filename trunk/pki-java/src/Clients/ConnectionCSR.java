@@ -34,16 +34,10 @@ public class ConnectionCSR extends Connection {
 		    KeyPair   kp = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 		    this.key = kp.getPrivate();
 		    
-		    String surname,commonname,pwd ;
-		    System.out.println("Entrez votre nom");
-		    surname = ClientUtils.saisieString();
-		    System.out.println("Entrez votre prenom");
-		    commonname = ClientUtils.saisieString();
+		    String identite = ClientUtils.readIdentity();
 		    System.out.println("Entrez votre mot de passe");
-		    pwd = ClientUtils.saisieString();
-		    String identite = commonname.replace(" ", "-") + " " + surname.replace(" ", "-");
+		    String pwd = ClientUtils.saisieString();
 		    PKCS10CertificationRequest request = CSRManager.generate_csr(identite, kp);
-		    
 		    
 		    byte[] bytes = request.getEncoded(); //récupère le tableau de bytes de la requete
 		    
