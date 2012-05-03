@@ -40,7 +40,7 @@ public class NeedhamSchroederPublicKey
     }
     return null ;
   }
-  
+  /*
   public static byte[] cipherCertBWithPrivateKeyS(X509Certificate b, PrivateKey sPrivKey)
   {
     try
@@ -53,7 +53,7 @@ public class NeedhamSchroederPublicKey
     }
     return null ;
   }
-  
+
   public static byte[] cipherNonceAWithPublicKeyB(BigInteger nonceA, byte[] encodedDataBCertificate, X509Certificate s)
   {
     try
@@ -67,7 +67,7 @@ public class NeedhamSchroederPublicKey
     }
     return null ;
   }
-  
+  */
   public static byte[] cipherNonceANonceBWithPublicKeyA(byte[] dataEncodedNonceA, X509Certificate certA, PrivateKey pkB, BigInteger nonceB)
   {
     try
@@ -164,7 +164,7 @@ public class NeedhamSchroederPublicKey
     KeyPair   kp2 = KeyPairGenerator.getInstance("RSA").generateKeyPair();
     X509Certificate b =  CertificateManager.createSelfSignedCertificate("Coucou toto", kp);
     X509Certificate a =  CertificateManager.createSelfSignedCertificate("Calu tata", kp2);
-    
+    /*
     byte[] code = NeedhamSchroeder.firstStep(b, bigint);
     
     System.out.println("fin step one " + new BigInteger(code));
@@ -174,7 +174,7 @@ public class NeedhamSchroederPublicKey
     System.out.println("fin step two " + new BigInteger(decode));
     
     byte[] last = NeedhamSchroeder.thirdStep(decode, b, a, bigint, kp2.getPrivate());
-    
+    */
    
   }
 

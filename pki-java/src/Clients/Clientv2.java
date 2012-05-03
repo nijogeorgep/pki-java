@@ -1,5 +1,7 @@
 package Clients;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -22,6 +24,8 @@ public class Clientv2 {
 	boolean isServer = false;
 	ServerSocket server_sock;
 	Socket s;
+	DataOutputStream out;
+	DataInputStream in;
 	KeyStore ks;
 	X509Certificate myCert;
 	PrivateKey myKey;
@@ -115,53 +119,77 @@ public class Clientv2 {
 				break;
 			case(2):
 				//On appelle la méthode qui permet de révoquer un certificat
-			  if(this.myCert != null) 
-			  {
-			    ConnectionRevocation cli = new ConnectionRevocation(Config.get("IP_RA", "localhost"), new Integer(Config.get("PORT_RA","5555")));
-          cli.connect();
-          cli.run();
-          if(cli.finishedWell()) {
-            System.out.println("OK");
-          }
-          else
-            System.out.println(cli.getErrorMessage());
-          cli.close();
-        }
+				if(this.myCert != null) {
+					ConnectionRevocation cli = new ConnectionRevocation(Config.get("IP_RA", "localhost"), new Integer(Config.get("PORT_RA","5555")));
+					cli.connect();
+					cli.run();
+					if(cli.finishedWell()) {
+						System.out.println("OK");
+					}
+					else
+						System.out.println(cli.getErrorMessage());
+					cli.close();
+				}
 				break;
 			case(3):
-          String surname,commonname;
-          System.out.println("Entrez votre nom");
-          surname = ClientUtils.saisieString();
-          System.out.println("Entrez votre prenom");
-          commonname = ClientUtils.saisieString();
-          String identite = commonname.replace(" ", "-") + " " + surname.replace(" ", "-");
-          
-          String uid = ldaputils.getUIDFromSubject(identite);
-          System.out.println("CN="+identite);
-          System.out.println(uid);
-          X509Certificate c = ldaputils.getCertificate(uid);
-          // ajout du certificat dans le keystore.
-          System.out.println(c.toString());
-          ks.setCertificateEntry(Utils.Config.get("ALIAS", "default_val"), c);
-          System.out.println("Certificat ajout�");
-          break;
+		          String surname,commonname;
+		          System.out.println("Entrez votre nom");
+		          surname = ClientUtils.saisieString();
+		          System.out.println("Entrez votre prenom");
+		          commonname = ClientUtils.saisieString();
+		          String identite = commonname.replace(" ", "-") + " " + surname.replace(" ", "-");
+		          
+		          String uid = ldaputils.getUIDFromSubject(identite);
+		          System.out.println("CN="+identite);
+		          System.out.println(uid);
+		          X509Certificate c = ldaputils.getCertificate(uid);
+		          // ajout du certificat dans le keystore.
+		          System.out.println(c.toString());
+		          ks.setCertificateEntry(Utils.Config.get("ALIAS", "default_val"), c);
+		          System.out.println("Certificat ajout�");
+		          break;
 			case(4):
-				//On démarre la socket en tant que client et on essaye de démarrer une session
-
-				this.s = new Socket("localhost", 34);
-				NeedhamShroederClient cli = new NeedhamShroederClient(s,this.isServer,myKey,myCert);
+				//lit l'identité de la personne
+				//on récupère l'uid 
+				//Si l'uid existe dans le keystore on récupère le cert de B
+				//Sinon on le télécharge sur ldap
+				X509Certificate certB = (X509Certificate) this.ks.getCertificate("personne1_certificat");
+				NeedhamShroederClient cli = new NeedhamShroederClient("localhost", 5555, this.s,this.isServer,this.myCert,this.myKey,certB);
+				//cli.bind();
+				cli.connect();
 				cli.run();
-				if (cli.isOK() ){
-				}
-				/*this.s = new Socket("lcoalhsot", 34);
-				NeedhamShroederClient cli = new NeedhamShroederClient(s);
-				clir.run();
-				if cli.isOK() {
-					s.write
-				}*/
+				this.in = cli.getInputStream();
+				this.out = cli.getOutputStream();
+				if(cli.finishedWell())
+					System.out.println("It's all right client");
+				else
+					System.out.println(cli.getErrorMessage());
+				
+				//this.out.write("Hello".getBytes());
+				cli.close();
 				break;
 			case(5):
 				//On démarre la socket en tant que server
+				this.isServer = true;
+				X509Certificate certC = (X509Certificate) this.ks.getCertificate("personne1_certificat");
+				PrivateKey key = (PrivateKey) this.ks.getKey("personne1_private", "monpassP1".toCharArray());
+				this.server_sock = new ServerSocket(5555);
+				System.out.println("Wait for a connection...");
+				Socket s_cli = this.server_sock.accept();
+				System.out.println("Client accepted: "+s_cli.getLocalSocketAddress().toString());
+				
+				NeedhamShroederClient cli2 = new NeedhamShroederClient("localhost", 7777, s_cli,this.isServer,certC,key,this.myCert);
+				cli2.bind();
+				//cli2.connect();
+				cli2.run();
+				this.in = cli2.getInputStream();
+				this.out = cli2.getOutputStream();
+				if(cli2.finishedWell())
+					System.out.println("It's all right server");
+				else
+					System.out.println(cli2.getErrorMessage());
+				//this.out.write("Hello".getBytes());
+				cli2.close();
 				break;
 			case(6):
 				throw new QuitException();
