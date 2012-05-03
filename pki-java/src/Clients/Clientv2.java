@@ -13,6 +13,7 @@ import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
+import Ldap.ldaputils;
 import Utils.Config;
 
 
@@ -114,12 +115,44 @@ public class Clientv2 {
 				break;
 			case(2):
 				//On appelle la méthode qui permet de révoquer un certificat
+			  if(this.myCert != null) 
+			  {
+			    ConnectionRevocation cli = new ConnectionRevocation(Config.get("IP_RA", "localhost"), new Integer(Config.get("PORT_RA","5555")));
+          cli.connect();
+          cli.run();
+          if(cli.finishedWell()) {
+            System.out.println("OK");
+          }
+          else
+            System.out.println(cli.getErrorMessage());
+          cli.close();
+        }
 				break;
 			case(3):
-				//On appelle la méthode qui permet de chercher un certificat sur le ldap
-				break;
+          String surname,commonname;
+          System.out.println("Entrez votre nom");
+          surname = ClientUtils.saisieString();
+          System.out.println("Entrez votre prenom");
+          commonname = ClientUtils.saisieString();
+          String identite = commonname.replace(" ", "-") + " " + surname.replace(" ", "-");
+          
+          String uid = ldaputils.getUIDFromSubject(identite);
+          System.out.println("CN="+identite);
+          System.out.println(uid);
+          X509Certificate c = ldaputils.getCertificate(uid);
+          // ajout du certificat dans le keystore.
+          System.out.println(c.toString());
+          ks.setCertificateEntry(Utils.Config.get("ALIAS", "default_val"), c);
+          System.out.println("Certificat ajout�");
+          break;
 			case(4):
 				//On démarre la socket en tant que client et on essaye de démarrer une session
+
+				this.s = new Socket("localhost", 34);
+				NeedhamShroederClient cli = new NeedhamShroederClient(s,this.isServer,myKey,myCert);
+				cli.run();
+				if (cli.isOK() ){
+				}
 				/*this.s = new Socket("lcoalhsot", 34);
 				NeedhamShroederClient cli = new NeedhamShroederClient(s);
 				clir.run();
