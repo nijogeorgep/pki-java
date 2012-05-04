@@ -12,11 +12,11 @@ import org.bouncycastle.cert.X509CRLHolder;
 
 import Ldap.ldaputils;
 
-class PathCheckerSimple  extends PKIXCertPathChecker {
-    private X509Certificate caCert;
+public class PathCheckerSimple  extends PKIXCertPathChecker {
+    //private X509Certificate caCert;
     
-    public PathCheckerSimple(X509Certificate caCert)  {
-        this.caCert = caCert;
+    public PathCheckerSimple()  {
+        //this.caCert = caCert;
     }
     
     public void init(boolean forwardChecking) throws CertPathValidatorException {

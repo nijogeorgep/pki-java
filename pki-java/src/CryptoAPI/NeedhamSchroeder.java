@@ -25,6 +25,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 public class NeedhamSchroeder {
 
+	BigInteger na;
+	
 	public static byte[] step1nonceAToB(X509Certificate certA, PrivateKey keyA , X509Certificate certB, BigInteger nonce) {
 		// M3: A --> B:  {Na,A}Kb            en fait: { {Na}Ka', A }Kb
 		try {
@@ -53,15 +55,7 @@ public class NeedhamSchroeder {
 			
 			System.arraycopy(rawnonceA, 0, container, 0, rawnonceA.length);
 			System.arraycopy(rawnonceB, 0, container, rawnonceA.length, rawnonceB.length);
-			/*
-			for (int i = 0; i < rawnonceA.length; i++) {
-				container[i] = rawnonceA[i];
-			}
-			for (int j = rawnonceA.length; j < container.length; j++) {
-				container[j] = rawnonceB[j - rawnonceA.length];
-			}
-			*/
-			//return AsymetricKeyManager.cipher(a, tmp);
+
 			byte[] nonceAnonceBEncrypted = CMSDataManager.encryptMessage(container, certA);
 			return nonceAnonceBEncrypted;
 		} catch (Exception e) {
@@ -70,6 +64,16 @@ public class NeedhamSchroeder {
 		return null;
 	}
 
+	public static BigInteger getnonceAFromStep1(PrivateKey keyB, byte[] nonceEncrypted) {
+		try {
+			CMSSignedData nonceSigned = new CMSSignedData((byte[])CMSDataManager.decryptMessage(nonceEncrypted, keyB));
+			byte[] rawnonceA = (byte[]) CMSDataManager.verifySignedMessage(nonceSigned);
+			return new BigInteger(rawnonceA);
+		}
+		catch(Exception e) {
+			return null;
+		}
+	}
 	public static byte[] step3nonceBToB(PrivateKey keyA, X509Certificate certB, byte[] dataEncrypted, BigInteger nonceAOrig) {
 		try {
 			byte[] container = (byte[]) CMSDataManager.decryptMessage(dataEncrypted, keyA);
@@ -88,6 +92,17 @@ public class NeedhamSchroeder {
 		}
 	}
 
+	public static BigInteger getNonceBFromStep2(PrivateKey keyA, byte[] dataEncrypted, BigInteger nonceAOrig) {
+		try {
+			byte[] container = (byte[]) CMSDataManager.decryptMessage(dataEncrypted, keyA);
+			byte[] nonceB = Arrays.copyOfRange(container, nonceAOrig.toByteArray().length, container.length);
+			return new BigInteger(nonceB);
+		}
+		catch(Exception e) {
+			return null;
+		}
+	}
+			
 	public static boolean step3received(PrivateKey keyB, BigInteger nonceBOrig, byte[] nonceBEnc) {
 		byte[] nonceB = (byte[]) CMSDataManager.decryptMessage(nonceBEnc, keyB);
 		if(nonceBOrig.equals(new BigInteger(nonceB))){

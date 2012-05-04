@@ -29,5 +29,28 @@ public class ClientUtils {
 		    commonname = ClientUtils.saisieString();
 		    return commonname.replace(" ", "-") + " " + surname.replace(" ", "-");
 	  }
+	  
+	  public static int makeChoice(String title, String choice1, String choice2){
+			Integer val = null;
+			boolean isOK = true;
+			try {
+				
+				do {
+				    System.out.println(title);
+				    System.out.println("1 - "+choice1);
+				    System.out.println("2 - "+choice2);
+				    val = ClientUtils.readIntKeyboard();
+				    if(val == null)
+				    	continue;
+				    else
+				    	if(val >= 1 && val <=2)
+				    		isOK= false;
+				}while (isOK);
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
+			return val;
+	  }
 	
 }
