@@ -24,7 +24,7 @@ import Ldap.ldaputils;
 import Utils.Config;
 
 
-public class Clientv2 {
+public class Client {
 	
 	boolean isServer = false;
 	ServerSocket server_sock;
@@ -44,7 +44,7 @@ public class Clientv2 {
 	NeedhamShroederClient needhamcli;
 	ConnectionChat chat;
 	
-	public Clientv2() {
+	public Client() {
 		try {
 			try {
 				ks = KeyStore.getInstance(KeyStore.getDefaultType());
