@@ -13,9 +13,9 @@ public class Config {
 		    InputStream is = new FileInputStream("src/Config/config");
 	
 		    prop.load(is);
-	
+		    
 			return prop.getProperty(attribute,default_val);
-		}
+		} 
 		catch(IOException e) {
 			return null;
 		}

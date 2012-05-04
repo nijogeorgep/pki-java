@@ -19,7 +19,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
+import Ldap.ldaputils;
 import Utils.Config;
+import Utils.PasswordUtils;
 
 public class RAServer {
 
@@ -31,10 +33,16 @@ public class RAServer {
 	X509Certificate caSignerCert;
 	PrivateKey caSignerKey;
 	KeyStore ks;
+	String ldappasswd;
 	//----------------------
     public static void main(String[] args) {
         try {
-            RAServer s = new RAServer();
+    		String pass = PasswordUtils.readInPassword("LDAP");
+    		if (!(ldaputils.isPasswordValid(pass))) {
+    			System.out.println("Wrong password");
+    			System.exit(1);
+    		}
+            RAServer s = new RAServer(pass);
             s.run();
         } catch (IOException e) {
             System.out.println("Bug !\n" +e);
@@ -43,7 +51,8 @@ public class RAServer {
         } 
     }
     
-	public RAServer() throws IOException, InterruptedException {
+	public RAServer(String pass) throws IOException, InterruptedException {
+		this.ldappasswd = pass;
 		this.s = ServerSocketChannel.open();
 		this.s.socket().bind(new InetSocketAddress( new Integer(Config.get("PORT_RA", "5555"))) );		//arbitrarily set to 5555
 		this.s.configureBlocking(false);
@@ -106,7 +115,7 @@ public class RAServer {
                             		try {
                             			PKCS10CertificationRequest request = new PKCS10CertificationRequest(received);
                             			System.out.println("In CSR");
-                            			CSRHandlerThread cli = new CSRHandlerThread(request);
+                            			CSRHandlerThread cli = new CSRHandlerThread(request,this.ldappasswd);
                             			cli.start();
                             			sk.attach(cli);
                             			System.out.println(request.getEncoded());
@@ -114,7 +123,7 @@ public class RAServer {
                             		catch(Exception e) {//c'est une demande de revocation
                             			System.out.println("In revocation");
                             			String uid = new String(received);
-                            			RevocationRequestThread cli = new RevocationRequestThread(uid);
+                            			RevocationRequestThread cli = new RevocationRequestThread(uid, this.ldappasswd);
                             			cli.start();
                             			sk.attach(cli);
                             		}

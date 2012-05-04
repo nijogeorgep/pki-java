@@ -30,6 +30,7 @@ public class RevocationRequestThread extends Thread implements Runnable, Communi
 	X509Certificate caSignerCert;
 	PrivateKey caSignerKey;
 	String uid = "";
+	String pass;
 /* ######## README #########
  * Bon j'explique brievement l'idée qui m'est passé par la tête.
  * Cet objet sera crée pour chaque demande de revocation faite auprès du RA.
@@ -44,7 +45,7 @@ public class RevocationRequestThread extends Thread implements Runnable, Communi
  * Ensuite que le résultat soit positif ou négatif il renvoie la réponse récupérée, puis ferme la socket.
  *########################*/
 	
-	public RevocationRequestThread(String id) {
+	public RevocationRequestThread(String id,String pass) {
 		this.uid = id;
 		KeyStore ks;
 		try {
@@ -65,7 +66,7 @@ public class RevocationRequestThread extends Thread implements Runnable, Communi
 			if(hasSomethingToRead()) {
 				byte[] bytes = this.getRead(); //Ici pour un CSR ce qu'on récupère c'est le password
 				
-				byte[] ldappass = ldaputils.getUserPassword(this.uid);
+				byte[] ldappass = ldaputils.getUserPassword(this.uid,pass);
 				
 				if(MessageDigestUtils.checkDigest(bytes, ldappass)) {
 					//try {
@@ -76,7 +77,7 @@ public class RevocationRequestThread extends Thread implements Runnable, Communi
 						System.out.println(holder);
 						BigInteger ser = cert.getSerialNumber();
 						X509CRLHolder newcrl = CRLManager.updateCRL(holder, this.caSignerCert, this.caSignerKey, ser, CRLReason.privilegeWithdrawn);
-						ldaputils.setCRL(newcrl, Config.get("USERS_BASE_DN", ""));
+						ldaputils.setCRL(newcrl, Config.get("USERS_BASE_DN", ""),pass);
 						this.setBytesToWrite("Done".getBytes());
 					//}
 					//catch(Exception e) {

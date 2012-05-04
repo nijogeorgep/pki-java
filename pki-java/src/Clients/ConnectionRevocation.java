@@ -17,10 +17,13 @@ public class ConnectionRevocation extends Connection {
 			Security.addProvider(new BouncyCastleProvider());
 			
 			String identite = ClientUtils.readIdentity();
+			
+			String uid = ldaputils.getUIDFromSubject("CN="+identite);
+			
 			System.out.println("Please enter your password:");
 			String pwd = ClientUtils.saisieString();
 			
-			String uid = ldaputils.getUIDFromSubject(identite);
+			
 			
 			try {
 				  out.write(uid.getBytes()); //on envoie la requete
@@ -43,4 +46,6 @@ public class ConnectionRevocation extends Connection {
 				  this.finishedOK = false;
 			} 
 	  }
+	  
+	  
 }

@@ -10,9 +10,14 @@ public class ClientManager
 {
   public static void main(String[]args)
   {
-    System.out.println(new String(ldaputils.getUserPassword("1234"))); 
+	String pass = PasswordUtils.readInPassword("LDAP");
+	if (!(ldaputils.isPasswordValid(pass))) {
+		System.out.println("Wrong password");
+		System.exit(1);
+	}
+    System.out.println(new String(ldaputils.getUserPassword("1234",pass))); 
     System.out.println(new String(MessageDigestUtils.digest("coucou")));
-    System.out.println(MessageDigestUtils.checkDigest(MessageDigestUtils.digest("coucou"),new String(ldaputils.getUserPassword("1234")).getBytes() ));
+    System.out.println(MessageDigestUtils.checkDigest(MessageDigestUtils.digest("coucou"),new String(ldaputils.getUserPassword("1234",pass)).getBytes() ));
    
     
     char al ;
@@ -25,9 +30,9 @@ public class ClientManager
       al = saisie();
       switch(al)
       {
-        case('1'): createClient();
+        case('1'): createClient(pass);
           break;
-        case('2'): deleteClient();
+        case('2'): deleteClient(pass);
           break;
       }
           
@@ -35,18 +40,19 @@ public class ClientManager
    
   }
   
-  private static void deleteClient()
+  private static void deleteClient(String pass)
   {
     try
     {
       String surname, commonname;
       System.out.println("Entrez le nom de l'utilisateur a supprimer");
       surname = saisieString();
-      System.out.println("Entrez le prénom de l'utilisateur a supprimer");
+      System.out.println("Entrez le prï¿½nom de l'utilisateur a supprimer");
       commonname = saisieString();
       System.out.println(ldaputils.getUIDFromSubject("CN="+commonname.replace(" ", "-") + " " + surname.replace(" ", "-")));
-      ldaputils.deleteUser("uid="+ldaputils.getUIDFromSubject("CN="+commonname.replace(" ", "-") + " " + surname.replace(" ", "-"))+";"+ Config.get("USERS_BASE_DN", ""));
-      System.out.println("Utilisateur supprimer avec succès");
+      String uid = "uid="+ldaputils.getUIDFromSubject("CN="+commonname.replace(" ", "-") + " " + surname.replace(" ", "-"));
+      ldaputils.deleteUser(uid+";"+ Config.get("USERS_BASE_DN", ""),pass);
+      System.out.println("Utilisateur supprimer avec succï¿½s");
     }
     catch (Exception e)
     {
@@ -56,12 +62,12 @@ public class ClientManager
     
   }
 
-  private static void createClient()
+  private static void createClient(String pass)
   {
       String surname,commonname,pwd,uid ;
       System.out.println("Entrez votre nom");
       surname = saisieString();
-      System.out.println("Entrez votre prénom");
+      System.out.println("Entrez votre prï¿½nom");
       commonname = saisieString();
       System.out.println("Entrez votre mot de passe");
       pwd = saisieString();
@@ -69,8 +75,8 @@ public class ClientManager
       uid = String.valueOf(System.currentTimeMillis());
       try
       {
-        ldaputils.createNewUser(uid, commonname.replace(" ", "-"), surname.replace(" ", "-"), MessageDigestUtils.digest(pwd));
-        System.out.println("Utilisateur ajouté avec succès");
+        ldaputils.createNewUser(uid, commonname.replace(" ", "-"), surname.replace(" ", "-"), MessageDigestUtils.digest(pwd),pass);
+        System.out.println("Utilisateur ajoutï¿½ avec succï¿½s");
       }
       catch (IOException e)
       {

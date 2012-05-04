@@ -32,13 +32,13 @@ import Utils.Config;
 public class ldaputils {
 
 	
-	public static boolean createNewUser(String uid, String commonname, String surname, byte[] pass) throws IOException {
+	public static boolean createNewUser(String uid, String commonname, String surname, byte[] pass, String ldappass) throws IOException {
 		try {
 			LDAP ldap = new LDAP();
 			//ldap.init("ldap://87.98.166.65:389"); //Could be ldap://localhost:398/ou=People ...
 			String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
 			//System.out.println(url);
-			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), Config.get("LDAP_PASS","PKICrypto"));
+			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), ldappass);
 			
 			String distinguishedName = "uid=" + uid +";"+ Config.get("USERS_BASE_DN", "");
 			Attributes newAttributes = new BasicAttributes(true);
@@ -64,7 +64,7 @@ public class ldaputils {
 		}
 	}
 	
-	public static boolean deleteUser(String dn)
+	public static boolean deleteUser(String dn, String ldappass)
 	{
     try
     {
@@ -72,7 +72,7 @@ public class ldaputils {
       //ldap.init("ldap://87.98.166.65:389"); //Could be ldap://localhost:398/ou=People ...
       String url;
       url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
-      ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), Config.get("LDAP_PASS","PKICrypto"));
+      ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), ldappass);
       ldap.deleteObject(dn);
       ldap.close();
     }
@@ -85,12 +85,12 @@ public class ldaputils {
 	  return false ;
 	}
 	
-	public static void setCertificateCA(X509Certificate cert, String dn) {
+	public static void setCertificateCA(X509Certificate cert, String dn, String ldappass) {
 		LDAP ldap = new LDAP();
 		try {
 			String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
 			//System.out.println(url);
-			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), Config.get("LDAP_PASS","PKICrypto"));
+			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), ldappass);
 			
 			ldap.modifAttribute(DirContext.REPLACE_ATTRIBUTE, dn, "cACertificate;binary", cert.getEncoded());
 			
@@ -101,12 +101,12 @@ public class ldaputils {
 		}
 	}
 	
-	public static void setCRL(X509CRLHolder crl, String dn) {
+	public static void setCRL(X509CRLHolder crl, String dn, String ldappass) {
 		LDAP ldap = new LDAP();
 		try {
 			String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
 			//System.out.println(url);
-			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), Config.get("LDAP_PASS","PKICrypto"));
+			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), ldappass);
 			
 			ldap.modifAttribute(DirContext.REPLACE_ATTRIBUTE, dn, "certificateRevocationList;binary", crl.getEncoded());
 			
@@ -118,12 +118,12 @@ public class ldaputils {
 	}
 	
 	//setCertificate
-	public static void setCertificateUser(X509Certificate cert,String uid, String dn) {
+	public static void setCertificateUser(X509Certificate cert,String uid, String dn, String ldappass) {
 		LDAP ldap = new LDAP();
 		try {
 			String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
 			//System.out.println(url);
-			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), Config.get("LDAP_PASS","PKICrypto"));
+			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), ldappass);
 			
 			ldap.modifAttribute(DirContext.REPLACE_ATTRIBUTE,  "uid=" + uid +";"+ Config.get("USERS_BASE_DN", ""), "userCertificate;binary", cert.getEncoded());
 			
@@ -154,12 +154,12 @@ public class ldaputils {
 		}
 	}
 
-	public static byte[] getUserPassword(String uid) {
+	public static byte[] getUserPassword(String uid, String ldappass) {
 		LDAP ldap = new LDAP();
 		//ldap.init("ldap://87.98.166.65:389"); //Could be ldap://localhost:398/ou=People ...
 		try {
 		String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
-		ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), Config.get("LDAP_PASS","PKICrypto"));
+		ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), ldappass);
 		
 		byte[] res = (byte[]) ldap.getAttribute(Config.get("USERS_BASE_DN", ""), "uid="+uid, "userPassword");
 
@@ -172,12 +172,12 @@ public class ldaputils {
 		}
 	}
 	
-	public static void setUserPassword(byte[] pass, String dn) {
+	public static void setUserPassword(byte[] pass, String dn, String ldappass) {
 		LDAP ldap = new LDAP();
 		try {
 			String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
 			//System.out.println(url);
-			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), Config.get("LDAP_PASS","PKICrypto"));
+			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), ldappass);
 			
 			ldap.modifAttribute(DirContext.REPLACE_ATTRIBUTE, dn, "userPassword", pass);
 			
@@ -247,11 +247,26 @@ public class ldaputils {
 		  }
 	  }
 	  
+	  public static boolean isPasswordValid(String pass) {
+			LDAP ldap = new LDAP();
+			try {
+				String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
+				//System.out.println(url);
+				ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), pass);
+				
+				ldap.close();
+				return true;
+			}
+			catch(Exception e) {
+				return false;
+			}
+	  }
+	  
 	public static void main(String[] args) throws IOException, NoSuchAlgorithmException, OperatorCreationException, CertificateException, KeyStoreException {
 		//createNewUser("2222", "Pierre", "Junk", "coucou".getBytes());
 		//System.out.println(getUserPassword("1234"));
-		X509Certificate cert = ldaputils.getCertificate("1234");
-		System.out.println(cert);
+		//X509Certificate cert = ldaputils.getCertificate("1234");
+		//System.out.println(cert);
 		//System.out.println(cert);
 		/*
 		String url = CertificateUtils.crlURLFromCert(cert);
@@ -271,6 +286,8 @@ public class ldaputils {
 		*/
 	//	X509CRLHolder crl = getCRL("dc=pkirepository,dc=org","rootCA");
 	//	System.out.println(crl.getEncoded());
+		
+		
 	}
 
 

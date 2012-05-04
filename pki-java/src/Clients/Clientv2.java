@@ -138,6 +138,9 @@ public class Clientv2 {
 					cli.run();
 					if(cli.finishedWell()) {
 						System.out.println("OK");
+						ks.deleteEntry(aliascert);
+						ks.deleteEntry(aliaskey);
+						saveKeystoreStat();
 					}
 					else
 						System.out.println(cli.getErrorMessage());
@@ -156,8 +159,11 @@ public class Clientv2 {
 				if (!(verificationBeforeConnection(clientcert)))
 					return;
 				
+				System.out.print("Please enter IP to connect to: ");
+				String ip = ClientUtils.saisieString();
+				
 				X509Certificate certB = (X509Certificate) this.ks.getCertificate("personne1_certificat");
-				needhamcli = new NeedhamShroederClient("localhost", 5555, this.s,this.isServer,this.myCert,this.myKey,clientcert);
+				needhamcli = new NeedhamShroederClient(ip, 5555, this.s,this.isServer,this.myCert,this.myKey,clientcert);
 				//cli.bind();
 				needhamcli .connect();
 				needhamcli .run();
@@ -313,7 +319,7 @@ public class Clientv2 {
 	}
 	
 	public static void main(String[] args) {
-		Clientv2 cli = new Clientv2();
+		Client cli = new Client();
 		cli.run();
 	}
 }

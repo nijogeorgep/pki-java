@@ -65,6 +65,7 @@ import CryptoAPI.CertificateManager;
 import CryptoAPI.CertificateUtils;
 import Ldap.ldaputils;
 import Utils.Config;
+import Utils.PasswordUtils;
 
 public class setup_ca {
 	
@@ -76,6 +77,12 @@ public class setup_ca {
 	
 	public static void main(String[] args) throws Exception {
 		Security.addProvider(new BouncyCastleProvider());
+		
+		String pass = PasswordUtils.readInPassword("LDAP");
+		if (!(ldaputils.isPasswordValid(pass))) {
+			System.out.println("Wrong password");
+			System.exit(1);
+		}
 		
 		KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
 		
@@ -99,9 +106,9 @@ public class setup_ca {
 		//Ajout le certificat et la clé privé du CA dans le keystore
 		ks.setCertificateEntry("CA_Certificate", caCert);
 		ks.setKeyEntry("CA_Private", keyPair.getPrivate(), Config.get("PASSWORD_CA_ROOT","").toCharArray(), new Certificate[] { caCert});
-		ldaputils.setCertificateCA(caCert, "ou=rootCA,dc=pkirepository,dc=org");
+		ldaputils.setCertificateCA(caCert, "ou=rootCA,dc=pkirepository,dc=org",pass);
 		X509CRLHolder crlroot = CRLManager.createCRL(caCert, keyPair.getPrivate());
-		ldaputils.setCRL(crlroot,  "ou=rootCA,dc=pkirepository,dc=org");
+		ldaputils.setCRL(crlroot,  "ou=rootCA,dc=pkirepository,dc=org",pass);
 		//-----------------------------
 		
 		//------- CA CRL OCSP --------
@@ -132,9 +139,9 @@ public class setup_ca {
 		//Ajout le certificat et la clé privé du CA dans le keystore
 		ks.setCertificateEntry("CA_IntermediairePeople_Certificate", intCert);
 		ks.setKeyEntry("CA_IntermediairePeople_Private", keyPairInt.getPrivate(),Config.get("PASSWORD_CA_INTP","").toCharArray(), new Certificate[] { caCert, intCert});
-		ldaputils.setCertificateCA(caCert, "ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org");
+		ldaputils.setCertificateCA(caCert, "ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org",pass);
 		X509CRLHolder crl = CRLManager.createCRL(sigPub, keyPairSig.getPrivate());
-		ldaputils.setCRL(crl,  "ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org");
+		ldaputils.setCRL(crl,  "ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org",pass);
 		//------------------------------------
 
 		//------- CA Intermediaire Server --------
@@ -149,9 +156,9 @@ public class setup_ca {
 		//Ajout le certificat et la clé privé du CA dans le keystore
 		ks.setCertificateEntry("CA_IntermediaireServer_Certificate", intCert);
 		ks.setKeyEntry("CA_IntermediaireServer_Private", keyPairInt.getPrivate(),Config.get("PASSWORD_CA_INTS","").toCharArray(), new Certificate[] { caCert, intCertS});
-		ldaputils.setCertificateCA(caCert, "ou=intermediateServerCA,ou=rootCA,dc=pkirepository,dc=org");
+		ldaputils.setCertificateCA(caCert, "ou=intermediateServerCA,ou=rootCA,dc=pkirepository,dc=org",pass);
 		X509CRLHolder crlserv = CRLManager.createCRL(sigPub, keyPairSig.getPrivate());
-		ldaputils.setCRL(crlserv,  "ou=intermediateServerCA,ou=rootCA,dc=pkirepository,dc=org");
+		ldaputils.setCRL(crlserv,  "ou=intermediateServerCA,ou=rootCA,dc=pkirepository,dc=org",pass);
 		//-----------------------------------------------
 		
 		
