@@ -17,6 +17,8 @@ public class NeedhamShroederClient extends Connection{
 	X509Certificate myCert;
 	PrivateKey myKey;
 	X509Certificate certB;
+	BigInteger nonceA;
+	BigInteger nonceB;
 	
 	public NeedhamShroederClient(String ip, Integer port, Socket s, boolean isserv, X509Certificate cA, PrivateKey kA, X509Certificate cB) {
 		super(ip, port);
@@ -51,8 +53,9 @@ public class NeedhamShroederClient extends Connection{
 	}
 	
 	public void runServer() throws IOException {
-		BigInteger nonceB = NeedhamSchroeder.generateNonce();
+		nonceB = NeedhamSchroeder.generateNonce();
 		byte[] step1received = this.read();
+		this.nonceA = NeedhamSchroeder.getnonceAFromStep1(this.myKey, step1received);
 		byte[] step2 = NeedhamSchroeder.step2nonceAnonceBToA(this.certB, this.myKey, nonceB, step1received, true);
 		this.out.write(step2);
 		byte[] step3 = this.read();
@@ -66,10 +69,11 @@ public class NeedhamShroederClient extends Connection{
 	}
 	
 	public void runClient() throws IOException {
-		BigInteger nonceA = NeedhamSchroeder.generateNonce();
+		nonceA = NeedhamSchroeder.generateNonce();
 		byte[] step1 = NeedhamSchroeder.step1nonceAToB(this.myCert, this.myKey, this.certB, nonceA);
 		this.out.write(step1);
 		byte[] step2received = this.read();
+		this.nonceB = NeedhamSchroeder.getNonceBFromStep2(this.myKey, step2received, nonceA);
 		byte[] step3 = NeedhamSchroeder.step3nonceBToB(this.myKey, this.certB, step2received, nonceA);
 		if(step3 == null) {
 			this.errormessage = "Nonce received not equal";
@@ -81,11 +85,19 @@ public class NeedhamShroederClient extends Connection{
 		this.finishedOK = true;
 	}
 	
+	public byte[] getSessionKey() {
+		return NeedhamSchroeder.generateSessionKey(nonceA, nonceB);
+	}
+	
 	public DataInputStream getInputStream() {
 		return this.in;
 	}
 	
 	public DataOutputStream getOutputStream() {
 		return this.out;
+	}
+	
+	public Socket getSocketBack() {
+		return this.s;
 	}
 }

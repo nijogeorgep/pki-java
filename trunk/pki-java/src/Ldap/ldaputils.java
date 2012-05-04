@@ -216,7 +216,11 @@ public class ldaputils {
 	      ldap.init(url);
 	      String[] id = ident.split(" ");
 	      String[] cnTmp = id[0].split("=");
-	      String cn = cnTmp[1];
+	      String cn;
+	      if(cnTmp.length == 2)
+	    	  cn = cnTmp[1];
+	      else
+	    	  cn = cnTmp[0];
 	      String sn = id[1];
 	      String uid = ldap.searchAttribute(Config.get("USERS_BASE_DN", ""), cn,"sn="+sn, "uid");
 	      ldap.close();

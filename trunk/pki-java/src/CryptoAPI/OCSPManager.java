@@ -144,7 +144,7 @@ public class OCSPManager {
 		           return "response nonce failed to validate";
 		}
 		else
-		    return "response failed to verify";
+		    return "response failed to verify OCSP signature";
 	} 
 	   
 	   

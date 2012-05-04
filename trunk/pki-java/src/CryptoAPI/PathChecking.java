@@ -118,7 +118,7 @@ public class PathChecking {
 		X509Certificate userCert = (X509Certificate) ks.getCertificate("personne1_certificat");
 		X509Certificate caSign = (X509Certificate) ks.getCertificate("personne1_certificat");
 		
-		checkPathUserCertificate(userCert, false, new PathCheckerSimple(caSign));
+		checkPathUserCertificate(userCert, false, new PathCheckerSimple());
     }
     
 }

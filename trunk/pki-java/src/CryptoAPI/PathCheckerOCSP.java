@@ -1,8 +1,10 @@
 package CryptoAPI;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.security.KeyPair;
@@ -20,11 +22,12 @@ import org.bouncycastle.ocsp.OCSPException;
 import org.bouncycastle.operator.OperatorCreationException;
 
 import Ldap.ldaputils;
+import Utils.Config;
 
-class PathCheckerOCSP  extends PKIXCertPathChecker {
+public class PathCheckerOCSP  extends PKIXCertPathChecker {
     private X509Certificate caCert;
     
-    public PathCheckerOCSP(X509Certificate caCert, BigInteger  revokedSerialNumber)  {
+    public PathCheckerOCSP(X509Certificate caCert)  {
         this.caCert = caCert;
     }
     
@@ -48,13 +51,19 @@ class PathCheckerOCSP  extends PKIXCertPathChecker {
         try {
 			OCSPReq ocspreq = OCSPManager.generateOCSPRequest(caCert, serial);
 			
-			Socket s = new Socket("localhost", 5555);
-			ObjectOutputStream stream = new ObjectOutputStream(s.getOutputStream());
-			stream.writeObject(ocspreq);
-			stream.flush();
+			int port = (int) new Integer(Config.get("PORT_REPOSITORY", "5555"));
+			Socket s = new Socket("localhost", port);
+			InputStream in = s.getInputStream();
+			OutputStream out = s.getOutputStream();
 			
-			ObjectInputStream instream = new ObjectInputStream(s.getInputStream());
-			OCSPResp response = (OCSPResp) instream.readObject();
+			out.write(ocspreq.getEncoded());
+			
+			byte[] resp = read(in);
+			
+			s.close();
+
+			OCSPResp response = new OCSPResp(resp);
+			
 			mess = OCSPManager.analyseResponse(response, ocspreq, caCert);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -63,6 +72,25 @@ class PathCheckerOCSP  extends PKIXCertPathChecker {
 		if (mess.endsWith("good"))
 			System.out.println("Certificate: "+ serial + " is valid !");
 		else
-			throw new CertPathValidatorException("exception verifying certificate: " + serial);
+			throw new CertPathValidatorException(mess);
     }
+    
+	public byte[] read(InputStream in) {
+		try {
+			byte[] res = new byte[4096]; //Créer un tableau très grand. (Je m'attends a tout recevoir d'un coup j'ai pas envie de me faire chier)
+			int read = in.read(res); //Je lis
+			if (read == -1) { //si on a rien lu c'est que le serveur a eu un problème
+					System.out.println("error !!");
+			}
+			
+			byte[] res_fitted = new byte[read]; //je déclare un tableau de la taille juste
+			for (int i=0; i < read; i++) { //je recopie le byte dedans
+				res_fitted[i] = res[i];
+			}
+			return res_fitted;
+		}
+		catch(Exception e) {
+			return null;
+		}
+	}
 }
