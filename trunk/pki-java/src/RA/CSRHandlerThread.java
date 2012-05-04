@@ -19,6 +19,7 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 	byte[] bytesread = null;
 	byte[] bytestowrite = null;
 	PKCS10CertificationRequest request;
+	String pass;
 	/* ######## README #########
 	 * (Lire d'abord RevocationRequest)
 	 * Le fonctionnement est similaire a RevocationRequest sauf qu'il ne fait pas la même chose:
@@ -32,7 +33,7 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 	 *########################*/
     //the thread is created into the same class as EchoServer as a private class because I had considered it as a built-in subroutine of the server
 	
-	public CSRHandlerThread(PKCS10CertificationRequest req) {
+	public CSRHandlerThread(PKCS10CertificationRequest req, String pass) {
 		this.request = req;
 	}
     	
@@ -50,7 +51,7 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 					break;
 				}
 				
-				byte[] ldappass = ldaputils.getUserPassword(uid);
+				byte[] ldappass = ldaputils.getUserPassword(uid,pass);
 				
 				if(MessageDigestUtils.checkDigest(bytes, ldappass)) {
 					//this.setBytesToWrite("OK".getBytes());
@@ -74,7 +75,7 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 						
 						this.setBytesToWrite(reply);
 						s.close();
-						ldaputils.setCertificateUser(CertificateUtils.certificateFromByteArray(reply), uid, Config.get("USERS_BASE_DN",""));
+						ldaputils.setCertificateUser(CertificateUtils.certificateFromByteArray(reply), uid, Config.get("USERS_BASE_DN",""),pass);
 						
 					} catch (UnknownHostException e) {
 						this.setBytesToWrite("Unknown host CA".getBytes());

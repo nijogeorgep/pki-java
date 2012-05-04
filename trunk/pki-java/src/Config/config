@@ -1,9 +1,8 @@
-#LDAP Configuration
 
+#LDAP Configuration
 LDAP_IP=87.98.166.65
 LDAP_PORT=389
 LDAP_ADMIN_DN=cn=admin,dc=pkirepository,dc=org
-LDAP_PASS=PKICrypto
 USERS_BASE_DN=ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org
 
 #Client Config
@@ -12,18 +11,32 @@ CLIENT_KEY_ALIAS=robin1_private
 CLIENT_KEY_PASS=monpassP1
 USER_KEYSTORE_PATH=src/Playground/test_keystore.ks
 USER_KEYSTORE_PASS=passwd
+PORT_LISTEN=7000
+
+#Config CA
+IP_CA=localhost
+PORT_CA=7001
+KS_PASS_CA=passwd
+KS_PATH_CA=keystores/ca_keystore.ks
+
 #Config RA
 IP_RA=localhost
+PORT_RA=7002
+KS_PASS_RA=passwd
+KS_PATH_RA=keystores/ra_keystore.ks
 
-#Config mot de passe keystore
+#Config Repository
+IP_REPOSITORY=localhost
+PORT_REPOSITORY=7003
+KS_PASS_REPOSITORY=passwd
+KS_PATH_REPOSITORY=keystores/repo_keystore.ks
 
+
+#Config Certificates
 PASSWORD_CA_ROOT=passwordRootCA
 PASSWORD_CA_INTP=passwordPeopleCA
 PASSWORD_CA_INTS=passwordServerCA
 PASSWORD_CA_SIG=passwordSigningCert
 
-#Services
-PORT_USER=7000
-PORT_CA=7001
-PORT_RA=7002
-PORT_REPOSITORY=7003
+
+
