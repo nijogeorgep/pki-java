@@ -10,7 +10,7 @@ public class Config {
 	public static String get(String attribute, String default_val) {
 		try {
 			Properties prop = new Properties();
-		    InputStream is = new FileInputStream("src/Config/config");
+		    InputStream is = new FileInputStream("config");
 	
 		    prop.load(is);
 		    

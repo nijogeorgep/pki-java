@@ -22,8 +22,8 @@ import javax.crypto.NoSuchPaddingException;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 
+import Admin.UserManager;
 import Ldap.ldaputils;
-import Utils.ClientManager;
 
 public class NeedhamSchroederPublicKey
 {

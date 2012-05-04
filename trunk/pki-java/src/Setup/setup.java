@@ -1,4 +1,4 @@
-package Playground;
+package Setup;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
@@ -67,7 +67,7 @@ import Ldap.ldaputils;
 import Utils.Config;
 import Utils.PasswordUtils;
 
-public class setup_ca {
+public class setup {
 	
 	public static void removeAlias(KeyStore ks, String alias) throws KeyStoreException {
 		if(ks.containsAlias(alias))

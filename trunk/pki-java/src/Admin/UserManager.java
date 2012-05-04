@@ -1,12 +1,14 @@
-package Utils;
+package Admin;
 
 import java.io.IOException;
 import java.util.Scanner;
 
 import CryptoAPI.MessageDigestUtils;
 import Ldap.ldaputils;
+import Utils.Config;
+import Utils.PasswordUtils;
 
-public class ClientManager
+public class UserManager
 {
   public static void main(String[]args)
   {
