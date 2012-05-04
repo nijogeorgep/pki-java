@@ -1,4 +1,4 @@
-package Repository;
+package Useless_but_less;
 
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -22,10 +22,10 @@ import org.bouncycastle.cert.ocsp.OCSPReq;
 import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+
 import CryptoAPI.AsymetricKeyManager;
 import CryptoAPI.CertificateUtils;
 import CryptoAPI.NeedhamSchroeder;
-import CryptoAPI.NeedhamSchroederPublicKey;
 import CryptoAPI.OCSPManager;
 
 public class clientocsp {
