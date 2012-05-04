@@ -154,6 +154,25 @@ public class ldaputils {
 		}
 	}
 
+	
+	public static X509Certificate getCaCertificate(String dn, String ou) {
+		LDAP ldap = new LDAP();
+		//ldap.init("ldap://87.98.166.65:389"); //Could be ldap://localhost:398/ou=People ...
+		try {
+			String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
+			ldap.init(url);
+			
+			byte[] res = (byte[]) ldap.getAttribute(dn, "ou="+ou, "cACertificate;binary");
+			
+			ldap.close();
+			return CertificateUtils.certificateFromByteArray(res);
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
 	public static byte[] getUserPassword(String uid, String ldappass) {
 		LDAP ldap = new LDAP();
 		//ldap.init("ldap://87.98.166.65:389"); //Could be ldap://localhost:398/ou=People ...

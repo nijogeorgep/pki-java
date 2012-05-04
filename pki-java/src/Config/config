@@ -2,6 +2,7 @@
 #LDAP Configuration
 LDAP_IP=87.98.166.65
 LDAP_PORT=389
+LDAP_ROOT_DN=dc=pkirepository,dc=org
 LDAP_ADMIN_DN=cn=admin,dc=pkirepository,dc=org
 USERS_BASE_DN=ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org
 
@@ -9,8 +10,8 @@ USERS_BASE_DN=ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org
 CLIENT_CERT_ALIAS=robin1_certificat
 CLIENT_KEY_ALIAS=robin1_private
 CLIENT_KEY_PASS=monpassP1
-USER_KEYSTORE_PATH=src/Playground/test_keystore.ks
-USER_KEYSTORE_PASS=passwd
+KS_PATH_USER=keystores/user_keystore.ks
+KS_PASS_USER=passwd
 PORT_LISTEN=7000
 
 #Config CA
@@ -32,7 +33,15 @@ KS_PASS_REPOSITORY=passwd
 KS_PATH_REPOSITORY=keystores/repo_keystore.ks
 
 
-#Config Certificates
+#Config Certificates for Keystores
+KS_ALIAS_CERT_CA=CA_Certificat
+KS_ALIAS_KEY_CA=CA_Private
+KS_ALIAS_CERT_CA_INTP=CA_IntermediairePeople_Certificate
+KS_ALIAS_KEY_CA_INTP=CA_IntermediairePeople_Private
+KS_ALIAS_CERT_CA_INTS=CA_IntermediaireServer_Certificate
+KS_ALIAS_KEY_CA_INTS=CA_IntermediaireServer_Private
+KS_ALIAS_CERT_CA_SIG=CA_SigningOnly_Certificate
+KS_ALIAS_KEY_CA_SIG=CA_SigningOnly_Private
 PASSWORD_CA_ROOT=passwordRootCA
 PASSWORD_CA_INTP=passwordPeopleCA
 PASSWORD_CA_INTS=passwordServerCA

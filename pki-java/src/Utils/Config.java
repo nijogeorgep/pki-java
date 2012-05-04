@@ -22,6 +22,6 @@ public class Config {
 	}
 	
 	public static void main(String[] args) throws IOException {
-		System.out.println(Config.get("BdedfzeASE_URL", "localhost"));
+		System.out.println(Config.get("BASE_URL", "localhost"));
 	}
 }
