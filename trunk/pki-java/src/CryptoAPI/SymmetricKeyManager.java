@@ -10,6 +10,8 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.bouncycastle.util.encoders.Base64;
+
 
 public class SymmetricKeyManager {
 
@@ -50,6 +52,8 @@ public class SymmetricKeyManager {
 			byte[] res = cipher(pass, s);
 			System.out.println(new String(res));
 			System.out.println(new String(decipher(pass, res)));
+			
+			 System.out.println(new String(Base64.encode(res)));
 		}
 		catch(Exception e) { e.printStackTrace(); }
 		

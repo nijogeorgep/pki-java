@@ -35,7 +35,7 @@ public class ConnectionCSR extends Connection {
 		    this.key = kp.getPrivate();
 		    
 		    String identite = ClientUtils.readIdentity();
-		    System.out.println("Entrez votre mot de passe");
+		    System.out.println("Please enter your password:");
 		    String pwd = ClientUtils.saisieString();
 		    PKCS10CertificationRequest request = CSRManager.generate_csr(identite, kp);
 		    
@@ -66,6 +66,7 @@ public class ConnectionCSR extends Connection {
 	    catch(Exception e) {
 	    	e.printStackTrace();
 	    	this.errormessage = e.getMessage();
+	    	this.finishedOK = false;
 	    }
 	}
 
