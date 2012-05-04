@@ -1,4 +1,4 @@
-package CryptoAPI;
+package Useless_but_less;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -23,6 +23,10 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 
 import Admin.UserManager;
+import CryptoAPI.AsymetricKeyManager;
+import CryptoAPI.CertificateManager;
+import CryptoAPI.MessageDigestUtils;
+import CryptoAPI.NeedhamSchroeder;
 import Ldap.ldaputils;
 
 public class NeedhamSchroederPublicKey
