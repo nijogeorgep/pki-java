@@ -53,6 +53,14 @@ public class MessageDigestUtils {
 		}
 	}
 	
+	public static String encodeB64Digest(byte[] digest) {
+		return new String(Base64.encode(digest));
+	}
+	
+	public static byte[] decodeB64Digest(String encoded) {
+		return Base64.decode(encoded);
+	}
+	
 	public static void main(String[] args) throws NoSuchAlgorithmException, OperatorCreationException, IOException {
 		/*
 		String uid = "1234";

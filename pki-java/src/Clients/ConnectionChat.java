@@ -53,17 +53,26 @@ public class ConnectionChat extends Connection{
 				this.finishedOK = false;
 			else
 				this.finishedOK = true;
+			th.dieNow = true;
 		}
 		catch(IOException e) {
-			this.errormessage =  "Connnection closed";
-			this.finishedOK = false;
+			if (th.ended)
+				this.finishedOK = true;
+			else {
+				this.errormessage =  "Connnection closed";
+				this.finishedOK = false;
+			}
 		}
 		catch(Exception e ) {
 			this.errormessage = "Error while trying to decrypt";
 			this.finishedOK = false;
 		}
 		finally{
-
+			th.dieNow = true;
+			try {
+				if(!(th.ended))
+					th.join();
+			} catch (InterruptedException e) {e.printStackTrace();}
 		}
 	}
 
@@ -73,6 +82,7 @@ public class ConnectionChat extends Connection{
 		OutputStream out;
 		boolean ended;
 		boolean diedok;
+		boolean dieNow = false;
 		public InputThread(OutputStream o,boolean stop,boolean die) {
 			this.out = o;
 			this.ended = stop;
@@ -83,9 +93,15 @@ public class ConnectionChat extends Connection{
 			try {
 				Scanner sc = new Scanner(System.in);
 				for(;;) {
+					if(dieNow)
+						break;
 					outputmessage = sc.nextLine();
-					if(outputmessage.equals("quit"))
+					if(outputmessage.equals("quit")) {
 						this.out.write(SymmetricKeyManager.cipher(key,"bye".getBytes()));
+						ended = true;
+						diedok = true;
+						break;
+					}
 					else
 						this.out.write(SymmetricKeyManager.cipher(key,outputmessage.getBytes()));
 				}

@@ -83,13 +83,13 @@ public class Clientv2 {
 		try {
 			
 			do {
-			    System.out.println("Options ");
-			    System.out.println("1 - Cr�er un certificat ");
-			    System.out.println("2 - R�voquer un certificat ");
-			    System.out.println("3 - Recuperer un certificat ");
-			    System.out.println("4 - Demarrer en chat en tant que client ");
-			    System.out.println("5 - Demarrer en chat en tant que serveur ");
-			    System.out.println("6 - Quitter ");
+			    System.out.println("Menu: ");
+			    System.out.println("1 - Create certificate");
+			    System.out.println("2 - Revoke certificate");
+			    System.out.println("3 - Get a certificate");
+			    System.out.println("4 - Start chat as client");
+			    System.out.println("5 - Start chat as server");
+			    System.out.println("6 - Quit");
 			    val = ClientUtils.readIntKeyboard();
 			    if(val == null)
 			    	continue;
@@ -147,21 +147,7 @@ public class Clientv2 {
 				//------------------------------------------------------------------------------------
 			case(3):
 				//------------------------- Telecharger un Certificat --------------------------------
-		          String surname,commonname;
-		          System.out.println("Entrez votre nom");
-		          surname = ClientUtils.saisieString();
-		          System.out.println("Entrez votre prenom");
-		          commonname = ClientUtils.saisieString();
-		          String identite = commonname.replace(" ", "-") + " " + surname.replace(" ", "-");
-		          
-		          String uid = ldaputils.getUIDFromSubject(identite);
-		          System.out.println("CN="+identite);
-		          System.out.println(uid);
-		          X509Certificate c = ldaputils.getCertificate(uid);
-		          // ajout du certificat dans le keystore.
-		          System.out.println(c.toString());
-		          ks.setCertificateEntry(Utils.Config.get("ALIAS", "default_val"), c);
-		          System.out.println("Certificat ajout�");
+		          getClientCertificate();
 		          break;
 		          //-----------------------------------------------------------------------------------------
 			case(4):
@@ -171,7 +157,7 @@ public class Clientv2 {
 					return;
 				
 				X509Certificate certB = (X509Certificate) this.ks.getCertificate("personne1_certificat");
-				needhamcli = new NeedhamShroederClient("localhost", 5555, this.s,this.isServer,this.myCert,this.myKey,certB);
+				needhamcli = new NeedhamShroederClient("localhost", 5555, this.s,this.isServer,this.myCert,this.myKey,clientcert);
 				//cli.bind();
 				needhamcli .connect();
 				needhamcli .run();
@@ -209,8 +195,8 @@ public class Clientv2 {
 					return;
 			
 				//to delete
-				this.myCert = (X509Certificate) this.ks.getCertificate("personne1_certificat");
-				this.myKey = (PrivateKey) this.ks.getKey("personne1_private", "monpassP1".toCharArray());
+				//this.myCert = (X509Certificate) this.ks.getCertificate("personne1_certificat");
+				//this.myKey = (PrivateKey) this.ks.getKey("personne1_private", "monpassP1".toCharArray());
 				X509Certificate certBB = (X509Certificate) ks.getCertificate("robin1_certificat");
 				
 				this.server_sock = new ServerSocket(5555);
@@ -219,7 +205,7 @@ public class Clientv2 {
 				Socket s_cli = this.server_sock.accept();
 				System.out.println("Client accepted: "+s_cli.getLocalSocketAddress().toString());
 				
-				needhamcli = new NeedhamShroederClient("localhost", 7777, s_cli,this.isServer,this.myCert,this.myKey,certBB);
+				needhamcli = new NeedhamShroederClient("localhost", 7777, s_cli,this.isServer,this.myCert,this.myKey,clientC);
 				needhamcli.bind();
 				//cli2.connect();
 				needhamcli.run();
@@ -261,6 +247,7 @@ public class Clientv2 {
 		}
 	}
 	
+	
 	public X509Certificate getClientCertificate() {
 		try {
 			String id = ClientUtils.readIdentity();
@@ -271,7 +258,10 @@ public class Clientv2 {
 			if(ks.containsAlias(uid)) {
 				if (ks.isCertificateEntry(uid)) {
 					System.out.println("Certificat found on keystore");
-					return (X509Certificate) ks.getCertificate(uid);
+					int choice = ClientUtils.makeChoice("Download anyway ?", "1.Yes", "2.No");
+					if (choice == 2) {
+						return (X509Certificate) ks.getCertificate(uid);
+					}
 				}
 			}
 			X509Certificate c =  ldaputils.getCertificate(uid);
