@@ -52,7 +52,8 @@ public class PathCheckerOCSP  extends PKIXCertPathChecker {
 			OCSPReq ocspreq = OCSPManager.generateOCSPRequest(caCert, serial);
 			
 			int port = (int) new Integer(Config.get("PORT_REPOSITORY", "5555"));
-			Socket s = new Socket("localhost", port);
+			String ip = Config.get("IP_REPOSITORY", "localhost");
+			Socket s = new Socket(ip, port);
 			InputStream in = s.getInputStream();
 			OutputStream out = s.getOutputStream();
 			

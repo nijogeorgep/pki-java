@@ -20,6 +20,7 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
+import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.CMSSignedData;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -58,8 +59,8 @@ public class NeedhamSchroeder {
 
 			byte[] nonceAnonceBEncrypted = CMSDataManager.encryptMessage(container, certA);
 			return nonceAnonceBEncrypted;
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (CMSException e) {
+			//e.printStackTrace();
 		}
 		return null;
 	}

@@ -37,11 +37,13 @@ public class RAServer {
 	//----------------------
     public static void main(String[] args) {
         try {
-    		String pass = PasswordUtils.readInPassword("LDAP");
+    		String pass = PasswordUtils.readInPassword("LDAP: ");
     		if (!(ldaputils.isPasswordValid(pass))) {
     			System.out.println("Wrong password");
     			System.exit(1);
     		}
+    		else
+    			System.out.println("Password OK\nListen...");
             RAServer s = new RAServer(pass);
             s.run();
         } catch (IOException e) {
@@ -63,9 +65,11 @@ public class RAServer {
 		//----- Added -----
 		try {
 			this.ks = KeyStore.getInstance(KeyStore.getDefaultType()); //Je load tout les certificats en mémoire pour les avoir directement sous la main
-			this.ks.load(new FileInputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
-			this.caSignerCert = (X509Certificate) ks.getCertificate("CA_SigningOnly_Certificate");
-			this.caSignerKey = (PrivateKey) ks.getKey("CA_SigningOnly_Private", Config.get("PASSWORD_CA_SIG","").toCharArray());
+		      String path = Config.get("KS_PATH_RA","test_keystore.ks");
+		      String passwd = Config.get("KS_PASS_RA","passwd");
+		      this.ks.load(new FileInputStream(path), passwd.toCharArray());
+			this.caSignerCert = (X509Certificate) ks.getCertificate(Config.get("KS_ALIAS_CERT_CA_SIG","CA_SigningOnly_Certificate"));
+			this.caSignerKey = (PrivateKey) ks.getKey(Config.get("KS_ALIAS_KEY_CA_SIG", "CA_SigningOnly_Private"), Config.get("PASSWORD_CA_SIG","").toCharArray());
 		} catch (Exception e) { e.printStackTrace();}
 		//--------------------
 		/* ############# TODO ###############
@@ -123,7 +127,7 @@ public class RAServer {
                             		catch(Exception e) {//c'est une demande de revocation
                             			System.out.println("In revocation");
                             			String uid = new String(received);
-                            			RevocationRequestThread cli = new RevocationRequestThread(uid, this.ldappasswd);
+                            			RevocationRequestThread cli = new RevocationRequestThread(uid, this.ldappasswd, this.caSignerCert, this.caSignerKey);
                             			cli.start();
                             			sk.attach(cli);
                             		}

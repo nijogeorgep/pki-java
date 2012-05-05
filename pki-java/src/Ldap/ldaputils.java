@@ -9,7 +9,9 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509CRL;
+import java.security.cert.X509CRLEntry;
 import java.security.cert.X509Certificate;
+import java.util.Iterator;
 
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -149,7 +151,7 @@ public class ldaputils {
 			return CertificateUtils.certificateFromByteArray(res);
 		}
 		catch(Exception e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 			return null;
 		}
 	}
@@ -199,6 +201,22 @@ public class ldaputils {
 			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), ldappass);
 			
 			ldap.modifAttribute(DirContext.REPLACE_ATTRIBUTE, dn, "userPassword", pass);
+			
+			ldap.close();
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void deleteUserCertificate(String dn, String ldappass) {
+		LDAP ldap = new LDAP();
+		try {
+			String url = "ldap://"+ Config.get("LDAP_IP", "localhost")+":"+Config.get("LDAP_PORT", "389");
+			//System.out.println(url);
+			ldap.initAuth(url,Config.get("LDAP_ADMIN_DN","cn=admin,dc=pkirepository,dc=org"), ldappass);
+			
+			ldap.modifAttribute(DirContext.REMOVE_ATTRIBUTE, dn, "userCertificate;binary", null);
 			
 			ldap.close();
 		}
@@ -305,8 +323,13 @@ public class ldaputils {
 		*/
 	//	X509CRLHolder crl = getCRL("dc=pkirepository,dc=org","rootCA");
 	//	System.out.println(crl.getEncoded());
-		
-		
+		X509CRLHolder crlh = ldaputils.getCRL("ou=rootCA,dc=pkirepository,dc=org", "intermediatePeopleCA");
+		X509CRL crl = CRLManager.CRLFromCrlHolder(crlh);
+		Iterator<X509CRLEntry> it = (Iterator<X509CRLEntry>) crl.getRevokedCertificates().iterator();
+		while(it.hasNext()) {
+			X509CRLEntry e = it.next();
+			System.out.println(e.getSerialNumber());
+		}
 	}
 
 

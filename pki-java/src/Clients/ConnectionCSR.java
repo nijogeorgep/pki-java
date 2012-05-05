@@ -35,7 +35,7 @@ public class ConnectionCSR extends Connection {
 		    this.key = kp.getPrivate();
 		    
 		    String identite = ClientUtils.readIdentity();
-		    System.out.println("Please enter your password:");
+		    System.out.print("Please enter your password: ");
 		    String pwd = ClientUtils.saisieString();
 		    PKCS10CertificationRequest request = CSRManager.generate_csr(identite, kp);
 		    
@@ -73,10 +73,13 @@ public class ConnectionCSR extends Connection {
 	public boolean storeCertAndKey(KeyStore ks, String alcert, String alkey, String alpass) {
 		try {
 			ks.setCertificateEntry(alcert, this.mycert);
-			Certificate[] chain = ks.getCertificateChain("CA_IntermediairePeople_Private");
-	
+			Certificate[] chain = new Certificate[2];
+			X509Certificate rootC = (X509Certificate) ks.getCertificate(Config.get("KS_ALIAS_CERT_CA","CA_Certificat"));
+			X509Certificate intC = (X509Certificate) ks.getCertificate(Config.get("KS_ALIAS_CERT_CA_INTP","CA_Certificat"));
+			chain[0] = rootC;
+			chain[1] = intC;
 			ks.setKeyEntry(alkey, this.key,alpass.toCharArray(), CertificateUtils.createNewChain(chain, this.mycert));
-			ks.store(new FileOutputStream( Config.get("USER_KEYSTORE_PATH","test.keystore.ks") ), Config.get("USER_KEYSTORE_PASS","passwd").toCharArray());
+			ks.store(new FileOutputStream( Config.get("KS_PATH_USER","test.keystore.ks") ), Config.get("KS_PASS_USER","passwd").toCharArray());
 			return true;
 		}
 		catch(Exception e) {

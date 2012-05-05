@@ -28,10 +28,11 @@ import org.bouncycastle.cert.jcajce.JcaX509CRLConverter;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import Ldap.ldaputils;
+import Utils.Config;
 
 public class PathChecking {
 	
-    public static boolean checkPathUserCertificate(X509Certificate userCert,boolean checkCRL,PKIXCertPathChecker checker) throws Exception {
+    public static boolean checkPathUserCertificate(X509Certificate userCert,boolean checkCRL,PKIXCertPathChecker checker, KeyStore ks) throws Exception {
     /*
      * checkCRL: true | checker:null   -> Mode vérification original ou les crl sont vérifiée ici et doivent être signé pour l'autorité concernée et non par le certficat spécial
      * checkCRL: false | checker:null  -> Mode le plus simple ou seul le path est vérifiée (en théorie)
@@ -41,11 +42,11 @@ public class PathChecking {
     	Security.addProvider(new BouncyCastleProvider());
 		
     	//--- Classic stuff to retrieve Certificates
-		KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-		ks.load(new FileInputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
+		//KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+		//ks.load(new FileInputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
 
-		X509Certificate rootCert = (X509Certificate) ks.getCertificate("CA_Certificate");
-		X509Certificate interCert = (X509Certificate) ks.getCertificate("CA_IntermediairePeople_Certificate");
+		X509Certificate rootCert = (X509Certificate) ks.getCertificate(Config.get("KS_ALIAS_CERT_CA","CA_Certificate"));
+		X509Certificate interCert = (X509Certificate) ks.getCertificate(Config.get("KS_ALIAS_CERT_CA_INTP","CA_IntermediairePeople_Certificate"));
 		//-------------
 		
 		X509CRL rootCRL = null;
@@ -118,7 +119,7 @@ public class PathChecking {
 		X509Certificate userCert = (X509Certificate) ks.getCertificate("personne1_certificat");
 		X509Certificate caSign = (X509Certificate) ks.getCertificate("personne1_certificat");
 		
-		checkPathUserCertificate(userCert, false, new PathCheckerSimple());
+		checkPathUserCertificate(userCert, false, new PathCheckerSimple(), ks);
     }
     
 }

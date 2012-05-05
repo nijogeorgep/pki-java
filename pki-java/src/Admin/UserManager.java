@@ -12,23 +12,19 @@ public class UserManager
 {
   public static void main(String[]args)
   {
-	String pass = PasswordUtils.readInPassword("LDAP");
+	String pass = PasswordUtils.readInPassword("LDAP: ");
 	if (!(ldaputils.isPasswordValid(pass))) {
 		System.out.println("Wrong password");
 		System.exit(1);
 	}
-    System.out.println(new String(ldaputils.getUserPassword("1234",pass))); 
-    System.out.println(new String(MessageDigestUtils.digest("coucou")));
-    System.out.println(MessageDigestUtils.checkDigest(MessageDigestUtils.digest("coucou"),new String(ldaputils.getUserPassword("1234",pass)).getBytes() ));
-   
     
     char al ;
     do
     {
-      System.out.println("Options ");
-      System.out.println("1 - Ajouter un utilisateur ");
-      System.out.println("2 - Supprimer un utilisateur ");
-      System.out.println("q - Quitter ");
+      System.out.println("Options: ");
+      System.out.println("1 - Add new user");
+      System.out.println("2 - Delete user");
+      System.out.println("q - Quit");
       al = saisie();
       switch(al)
       {
@@ -47,18 +43,18 @@ public class UserManager
     try
     {
       String surname, commonname;
-      System.out.println("Entrez le nom de l'utilisateur a supprimer");
+      System.out.print("Enter the surname of the user to delete: ");
       surname = saisieString();
-      System.out.println("Entrez le pr�nom de l'utilisateur a supprimer");
+      System.out.print("Enter the firstname of th user to delete: ");
       commonname = saisieString();
       System.out.println(ldaputils.getUIDFromSubject("CN="+commonname.replace(" ", "-") + " " + surname.replace(" ", "-")));
       String uid = "uid="+ldaputils.getUIDFromSubject("CN="+commonname.replace(" ", "-") + " " + surname.replace(" ", "-"));
       ldaputils.deleteUser(uid+";"+ Config.get("USERS_BASE_DN", ""),pass);
-      System.out.println("Utilisateur supprimer avec succ�s");
+      System.out.println("User deleted with success");
     }
     catch (Exception e)
     {
-      System.out.println("Utilisateur inconnu");
+      System.out.println("User unknown");
       e.printStackTrace();
     }
     
@@ -67,22 +63,22 @@ public class UserManager
   private static void createClient(String pass)
   {
       String surname,commonname,pwd,uid ;
-      System.out.println("Entrez votre nom");
+      System.out.print("Enter the surname: ");
       surname = saisieString();
-      System.out.println("Entrez votre pr�nom");
+      System.out.print("Enter the firstname: ");
       commonname = saisieString();
-      System.out.println("Entrez votre mot de passe");
+      System.out.print("Enter the password: ");
       pwd = saisieString();
       
       uid = String.valueOf(System.currentTimeMillis());
       try
       {
         ldaputils.createNewUser(uid, commonname.replace(" ", "-"), surname.replace(" ", "-"), MessageDigestUtils.digest(pwd),pass);
-        System.out.println("Utilisateur ajout� avec succ�s");
+        System.out.println("User added with success");
       }
       catch (IOException e)
       {
-        System.out.println("erreur lors de l'ajout d'un client");
+        System.out.println("Error during user addition.");
         e.printStackTrace();
       }
   }

@@ -23,9 +23,9 @@ public class ClientUtils {
 	  
 	  public static String readIdentity() {
 		  String surname,commonname;
-		    System.out.println("Nom: ");
+		    System.out.print("Nom: ");
 		    surname = ClientUtils.saisieString();
-		    System.out.println("Prenom: ");
+		    System.out.print("Prenom: ");
 		    commonname = ClientUtils.saisieString();
 		    return commonname.replace(" ", "-") + " " + surname.replace(" ", "-");
 	  }
