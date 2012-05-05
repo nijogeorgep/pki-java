@@ -63,9 +63,11 @@ public class RepositoryServer {
 		//----- Added -----
 		try {
 			this.ks = KeyStore.getInstance(KeyStore.getDefaultType()); //Je load tout les certificats en mémoire pour les avoir directement sous la main
-			this.ks.load(new FileInputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
-			this.caSignerCert = (X509Certificate) ks.getCertificate("CA_SigningOnly_Certificate");
-			this.caSignerKey = (PrivateKey) ks.getKey("CA_SigningOnly_Private", Config.get("PASSWORD_CA_SIG","").toCharArray());
+		      String path = Config.get("KS_PATH_REPOSITORY","test_keystore.ks");
+		      String passwd = Config.get("KS_PASS_REPOSITORY","passwd");
+		      this.ks.load(new FileInputStream(path), passwd.toCharArray());
+			this.caSignerCert = (X509Certificate) ks.getCertificate(Config.get("KS_ALIAS_CERT_CA_SIG","CA_SigningOnly_Certificate"));
+			this.caSignerKey = (PrivateKey) ks.getKey(Config.get("KS_ALIAS_KEY_CA_SIG", "CA_SigningOnly_Private"), Config.get("PASSWORD_CA_SIG","").toCharArray());
 		} catch (Exception e) { e.printStackTrace();}
 		//--------------------
 		

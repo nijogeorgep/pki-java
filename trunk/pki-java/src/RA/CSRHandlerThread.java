@@ -35,6 +35,7 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 	
 	public CSRHandlerThread(PKCS10CertificationRequest req, String pass) {
 		this.request = req;
+		this.pass = pass;
 	}
     	
     public void run()  { //method that implement Runnable
@@ -54,6 +55,7 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 				byte[] ldappass = ldaputils.getUserPassword(uid,pass);
 				
 				if(MessageDigestUtils.checkDigest(bytes, ldappass)) {
+					System.out.println("Password OK");
 					//this.setBytesToWrite("OK".getBytes());
 					
 					//---------- Connection au CA -------------

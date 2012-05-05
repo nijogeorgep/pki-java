@@ -20,7 +20,7 @@ public class ConnectionRevocation extends Connection {
 			
 			String uid = ldaputils.getUIDFromSubject("CN="+identite);
 			
-			System.out.println("Please enter your password:");
+			System.out.print("Please enter your password: ");
 			String pwd = ClientUtils.saisieString();
 			
 			

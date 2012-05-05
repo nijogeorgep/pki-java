@@ -206,7 +206,8 @@ public class LDAP {
 	public void modifAttribute(int operation,String dnBase, String attName, Object value) throws NamingException {
         Attributes attributes = new BasicAttributes(true); 
         Attribute attribut = new BasicAttribute(attName); 
-        attribut.add(value); 
+        if(value != null)
+        	attribut.add(value); 
         attributes.put(attribut); 
 
         ctx.modifyAttributes(dnBase, operation, attributes); //ADD REMOVE_ATTRIBUTE, REPLACE_ATTRIBUTE

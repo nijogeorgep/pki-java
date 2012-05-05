@@ -45,17 +45,11 @@ public class RevocationRequestThread extends Thread implements Runnable, Communi
  * Ensuite que le résultat soit positif ou négatif il renvoie la réponse récupérée, puis ferme la socket.
  *########################*/
 	
-	public RevocationRequestThread(String id,String pass) {
+	public RevocationRequestThread(String id,String pass, X509Certificate sigCert, PrivateKey key) {
 		this.uid = id;
-		KeyStore ks;
-		try {
-			ks = KeyStore.getInstance(KeyStore.getDefaultType());
-			ks.load(new FileInputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
-			this.caSignerCert = (X509Certificate) ks.getCertificate("CA_SigningOnly_Certificate");
-			this.caSignerKey = (PrivateKey) ks.getKey("CA_SigningOnly_Private", Config.get("PASSWORD_CA_SIG","").toCharArray());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		this.caSignerCert = sigCert;
+		this.caSignerKey = key;
+		this.pass = pass;
 	}
     	
     public void run()  { //method that implement Runnable
@@ -78,6 +72,7 @@ public class RevocationRequestThread extends Thread implements Runnable, Communi
 						BigInteger ser = cert.getSerialNumber();
 						X509CRLHolder newcrl = CRLManager.updateCRL(holder, this.caSignerCert, this.caSignerKey, ser, CRLReason.privilegeWithdrawn);
 						ldaputils.setCRL(newcrl, Config.get("USERS_BASE_DN", ""),pass);
+						ldaputils.deleteUserCertificate("uid="+this.uid+","+Config.get("USERS_BASE_DN",""), pass);
 						this.setBytesToWrite("Done".getBytes());
 					//}
 					//catch(Exception e) {

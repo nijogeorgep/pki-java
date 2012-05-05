@@ -56,6 +56,7 @@ public class CAServer {
   PrivateKey cakey;
   X509Certificate caCert;
   KeyStore ks;
+  String authorizedHost;
   
     public static void main(String[] args) throws UnrecoverableKeyException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, NoSuchProviderException, SignatureException, OperatorCreationException, CertificateException {
       Security.addProvider(new BouncyCastleProvider());
@@ -77,12 +78,14 @@ public class CAServer {
     this.masterBuffer = ByteBuffer.allocate(4096);
     this.sel = Selector.open();
     this.keyserver= s.register(this.sel, SelectionKey.OP_ACCEPT); //register the server selectionkey in accept
-
+    this.authorizedHost = Config.get("IP_RA", "localhost");
     try {
       this.ks = KeyStore.getInstance(KeyStore.getDefaultType()); //Je load tout les certificats en mémoire pour les avoir directement sous la main
-      this.ks.load(new FileInputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
-      this.cakey = (PrivateKey) ks.getKey("CA_IntermediairePeople_Private", Config.get("PASSWORD_CA_INTP", "default_val").toCharArray());
-      this.caCert = (X509Certificate)ks.getCertificate("CA_IntermediairePeople_Certificate");
+      String path = Config.get("KS_PATH_CA","test_keystore.ks");
+      String pass = Config.get("KS_PASS_CA","passwd");
+      this.ks.load(new FileInputStream(path), pass.toCharArray());
+      this.cakey = (PrivateKey) ks.getKey(Config.get("KS_ALIAS_KEY_CA_INTP","CA_IntermediairePeople_Private"), Config.get("PASSWORD_CA_INTP", "default_val").toCharArray());
+      this.caCert = (X509Certificate)ks.getCertificate(Config.get("KS_ALIAS_CERT_CA_INTP","CA_IntermediairePeople_Certificate"));
     } catch (Exception e) { e.printStackTrace();}
     
   }
@@ -120,22 +123,25 @@ public class CAServer {
                             }
                             else {
                               //if(client.socket().getInetAddress().equals(Utils.Config.get("IP_RA", "")))
-                              if(true)
+                            String h_addr = client.socket().getInetAddress().getHostAddress();
+                            String h_name = client.socket().getInetAddress().getHostName();
+                              if(this.authorizedHost.equals(h_name) || this.authorizedHost.equals(h_addr))
                               {
                                 //récupération du csr
                                 PKCS10CertificationRequest csr = new PKCS10CertificationRequest( readBuff(byteread));
                                 //PrivateKey pk = (PrivateKey) ks.getKey("CA_IntermediairePeople_Private", Config.get("PASSWORD_CA_INTP", "default_val").toCharArray());
                                 //création d'un certificat signé
-                                 BigInteger bigInt = new BigInteger(ldaputils.getUIDFromSubject(csr.getSubject().toString()));
-                                 
+                                 //BigInteger bigInt = new BigInteger(ldaputils.getUIDFromSubject(csr.getSubject().toString()));
+                                 BigInteger bigInt = new BigInteger(String.valueOf(System.currentTimeMillis()));
                                  X509Certificate c = CSRManager.retrieveCertificateFromCSR(csr,cakey , caCert, bigInt);
                                  sk.attach(c.getEncoded());
                                  sk.interestOps(SelectionKey.OP_WRITE);
                               }
                               else
                               {
-                                System.out.println("vous n'etes pas autorise a vous connecter au CA");
-                                client.close();//sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE);
+                                client.write(ByteBuffer.wrap("Not Authorized to connect\n".getBytes()));
+                                client.close();
+                                System.out.println("Unauthorized IP kicked !");
                               }
                             }           
                         } 
@@ -146,7 +152,7 @@ public class CAServer {
                         }
           }
           
-          if (sk.isWritable()) {
+          else if (sk.isWritable()) {
             byte[] attachment = (byte[]) sk.attachment(); //On récupère l'attachment
             SocketChannel client =  (SocketChannel) sk.channel(); 
             client.write(ByteBuffer.wrap(attachment)); //On écrit ce que l'on a récupéré
@@ -168,14 +174,5 @@ public class CAServer {
     }
     return myarray;
   }
-      
-    private void writeSocket(SelectionKey k, ByteBuffer b) {
-      SocketChannel client =  (SocketChannel) k.channel(); // gather the client socket
-      try {
-      client.write(b);                //write the message to the client
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    }
-    
+          
 }

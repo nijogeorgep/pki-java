@@ -48,21 +48,25 @@ public class Client {
 		try {
 			try {
 				ks = KeyStore.getInstance(KeyStore.getDefaultType());
-				this.keystorepath = Config.get("USER_KEYSTORE_PATH","mykeystore.ks");
-				this.keystorepass = Config.get("USER_KEYSTORE_PASS","passwd");
+				this.keystorepath = Config.get("KS_PATH_USER","mykeystore.ks");
+				this.keystorepass = Config.get("KS_PASS_USER","passwd");
 				ks.load(new FileInputStream(this.keystorepath), this.keystorepass.toCharArray());
+				
+				this.aliascert = Config.get("CLIENT_CERT_ALIAS","mycert");
+				this.aliaskey = Config.get("CLIENT_KEY_ALIAS","mykey");
+				this.keypass = Config.get("CLIENT_KEY_PASS","mypass");
+				if(ks.containsAlias(aliascert))
+					myCert = (X509Certificate) ks.getCertificate(aliascert);
+				if(ks.containsAlias(aliaskey))
+					myKey = (PrivateKey) ks.getKey(aliaskey, this.keypass.toCharArray());
+				caSign = (X509Certificate) ks.getCertificate("CA_SigningOnly_Certificate");
 			}
 			catch(FileNotFoundException e) {
-					ks.load(null);
+					System.out.println(this.keystorepath+" not found!");
+					System.out.println("Please run the Client setup or change keystore path in config file.");
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			this.aliascert = Config.get("CLIENT_CERT_ALIAS","mycert");
-			this.aliaskey = Config.get("CLIENT_KEY_ALIAS","mykey");
-			this.keypass = Config.get("CLIENT_KEY_PASS","mypass");
-			myCert = (X509Certificate) ks.getCertificate(aliascert);
-			myKey = (PrivateKey) ks.getKey(aliaskey, this.keypass.toCharArray());
-			caSign = (X509Certificate) ks.getCertificate("CA_SigningOnly_Certificate");
 		}
 		catch(Exception e) {
 			e.printStackTrace();
@@ -90,6 +94,7 @@ public class Client {
 			    System.out.println("4 - Start chat as client");
 			    System.out.println("5 - Start chat as server");
 			    System.out.println("6 - Quit");
+			    System.out.print("Choice: ");
 			    val = ClientUtils.readIntKeyboard();
 			    if(val == null)
 			    	continue;
@@ -120,6 +125,8 @@ public class Client {
 					if(cli.finishedWell()) {
 						System.out.println("OK");
 						cli.storeCertAndKey(this.ks, this.aliascert, this.aliaskey, this.keypass);
+						this.myCert = (X509Certificate) ks.getCertificate(this.aliascert);
+						this.myKey = (PrivateKey) ks.getKey(aliaskey, keypass.toCharArray());
 					}
 					else
 						System.out.println(cli.getErrorMessage());
@@ -141,11 +148,15 @@ public class Client {
 						ks.deleteEntry(aliascert);
 						ks.deleteEntry(aliaskey);
 						saveKeystoreStat();
+						this.myCert =null;
+						this.myKey = null;
 					}
 					else
 						System.out.println(cli.getErrorMessage());
 					cli.close();
 				}
+				else
+					System.out.println("Your certificate '"+this.aliascert+"' not found in the keystore");
 				break;
 				//------------------------------------------------------------------------------------
 			case(3):
@@ -155,15 +166,22 @@ public class Client {
 		          //-----------------------------------------------------------------------------------------
 			case(4):
 				//----------------------- Demarrer une session CLIENT ----------------------------
+				if(this.myCert == null || this.myKey == null) {
+					System.out.println("Your certificate '"+this.aliascert+"' or key '"+this.aliaskey+"' not in the keystore");
+					return;
+				}
+				
 				X509Certificate clientcert = getClientCertificate();
+				if (clientcert == null)
+					return;
 				if (!(verificationBeforeConnection(clientcert)))
 					return;
 				
 				System.out.print("Please enter IP to connect to: ");
 				String ip = ClientUtils.saisieString();
-				
-				X509Certificate certB = (X509Certificate) this.ks.getCertificate("personne1_certificat");
-				needhamcli = new NeedhamShroederClient(ip, 5555, this.s,this.isServer,this.myCert,this.myKey,clientcert);
+				Integer port = new Integer(Config.get("PORT_LISTEN", "7000"));
+
+				needhamcli = new NeedhamShroederClient(ip, port, this.s,this.isServer,this.myCert,this.myKey,clientcert);
 				//cli.bind();
 				needhamcli .connect();
 				needhamcli .run();
@@ -178,7 +196,7 @@ public class Client {
 				this.s = needhamcli.getSocketBack();
 				
 				System.out.println("----- Chat -----");
-				chat = new ConnectionChat("localhost", 5555, this.s, sessionkey);
+				chat = new ConnectionChat(ip, port, this.s, sessionkey);
 				chat.bind();
 				chat.run();
 				chat.close();
@@ -194,24 +212,35 @@ public class Client {
 			case(5):
 				//--------------------------- Demarrer session SERVER ---------------------------------
 				//On démarre la socket en tant que server
-				this.isServer = true;
-			
+				if(this.myCert == null || this.myKey == null) {
+					System.out.println("Your certificate '"+this.aliascert+"' or key '"+this.aliaskey+"' not in the keystore");
+					return;
+				}
+				
 				X509Certificate clientC = getClientCertificate();
+				if (clientC == null)
+					return;
 				if (!(verificationBeforeConnection(clientC)))
 					return;
 			
 				//to delete
 				//this.myCert = (X509Certificate) this.ks.getCertificate("personne1_certificat");
 				//this.myKey = (PrivateKey) this.ks.getKey("personne1_private", "monpassP1".toCharArray());
-				X509Certificate certBB = (X509Certificate) ks.getCertificate("robin1_certificat");
-				
-				this.server_sock = new ServerSocket(5555);
+				/*
+				if(this.server_sock != null) {
+					this.server_sock.close();
+					this.server_sock = null;
+				}
+				*/
+				this.server_sock = new ServerSocket(new Integer(Config.get("PORT_LISTEN", "7000")));
 				
 				System.out.println("Wait for a connection...");
 				Socket s_cli = this.server_sock.accept();
 				System.out.println("Client accepted: "+s_cli.getLocalSocketAddress().toString());
 				
-				needhamcli = new NeedhamShroederClient("localhost", 7777, s_cli,this.isServer,this.myCert,this.myKey,clientC);
+				this.isServer = true;
+				Integer p = new Integer(Config.get("PORT_LISTEN","7000"));
+				needhamcli = new NeedhamShroederClient("localhost", p, s_cli,this.isServer,this.myCert,this.myKey,clientC);
 				needhamcli.bind();
 				//cli2.connect();
 				needhamcli.run();
@@ -226,7 +255,7 @@ public class Client {
 				s_cli = needhamcli.getSocketBack();
 				
 				System.out.println("----- Chat -----");
-				chat = new ConnectionChat("localhost", 5555, s_cli, sessionkey);
+				chat = new ConnectionChat("localhost", p, s_cli, sessionkey);
 				chat.bind();
 				chat.run();
 				chat.close();
@@ -236,7 +265,9 @@ public class Client {
 					System.out.println(chat.getErrorMessage());
 					throw new QuitException();
 				}
-				
+				this.isServer = false;
+				this.server_sock.close();
+				this.server_sock = null;
 				//cli2.close();
 				break;
 				//-----------------------------------------------------------------------------------------------
@@ -271,9 +302,13 @@ public class Client {
 				}
 			}
 			X509Certificate c =  ldaputils.getCertificate(uid);
-			System.out.println("Certificate downloaded on LDAP");
-			ks.setCertificateEntry(uid, c);
-			saveKeystoreStat();
+			if (!(c==null)) {
+				System.out.println("Certificate downloaded on LDAP");
+				ks.setCertificateEntry(uid, c);
+				saveKeystoreStat();
+			}
+			else
+				System.out.println("Certificate not found for the given user.");
 			return c;
 		}
 		catch(Exception e) {
@@ -290,10 +325,10 @@ public class Client {
 		boolean isValid;
 		try {
 		if (choice == 1) {
-			isValid = PathChecking.checkPathUserCertificate(c, false, new PathCheckerSimple());
+			isValid = PathChecking.checkPathUserCertificate(c, false, new PathCheckerSimple(), this.ks);
 		}
 		else
-			isValid = PathChecking.checkPathUserCertificate(c, false, new PathCheckerOCSP(caSign));
+			isValid = PathChecking.checkPathUserCertificate(c, false, new PathCheckerOCSP(caSign), this.ks);
 		}
 		catch(Exception e) {
 			e.printStackTrace();
@@ -312,7 +347,7 @@ public class Client {
 				this.menuSelection();
 			}
 			catch(QuitException e) {
-				System.out.println("in quit !");
+				System.out.println("End.");
 				break;
 			}
 		}

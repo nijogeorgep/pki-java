@@ -57,6 +57,11 @@ public class NeedhamShroederClient extends Connection{
 		byte[] step1received = this.read();
 		this.nonceA = NeedhamSchroeder.getnonceAFromStep1(this.myKey, step1received);
 		byte[] step2 = NeedhamSchroeder.step2nonceAnonceBToA(this.certB, this.myKey, nonceB, step1received, true);
+		if (step2 == null) {
+			this.errormessage = "Failed to decrypt NonceA with, PrivateKey";
+			this.finishedOK = false;
+			return;
+		}
 		this.out.write(step2);
 		byte[] step3 = this.read();
 		if(NeedhamSchroeder.step3received(myKey, nonceB, step3)) {
