@@ -26,7 +26,7 @@ import Clients.ClientUtils;
 import CryptoAPI.CRLManager;
 import CryptoAPI.CertificateManager;
 
-public class setupv2 {
+public class setup {
 	
 	Properties prop;
 	KeyStore ks;
@@ -37,7 +37,7 @@ public class setupv2 {
 	String aliasK;
 	
 	
-	public setupv2() throws Exception {
+	public setup() throws Exception {
 		prop = new Properties();
 	    InputStream is = new FileInputStream("config");
 	    prop.load(is);
@@ -220,7 +220,7 @@ public class setupv2 {
 	  }
 	
 	public static void main(String[] args) throws Exception {
-		setupv2 setup = new setupv2();
+		setup setup = new setup();
 		setup.run();
 	}
 }
