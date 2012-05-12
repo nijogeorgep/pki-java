@@ -11,11 +11,7 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.ListIterator;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
@@ -25,16 +21,15 @@ import Utils.PasswordUtils;
 
 public class RAServer {
 
-	ServerSocketChannel s;			//server socket
-	ByteBuffer masterBuffer;		//buffer used to store temporarily bytes read in sockets
+	ServerSocketChannel s;
+	ByteBuffer masterBuffer;
 	Selector sel;
-	SelectionKey keyserver;			//SelectionKey of the server
-	//------ Ajout --------
+	SelectionKey keyserver;
 	X509Certificate caSignerCert;
 	PrivateKey caSignerKey;
 	KeyStore ks;
 	String ldappasswd;
-	//----------------------
+
     public static void main(String[] args) {
         try {
     		String pass = PasswordUtils.readInPassword("LDAP: ");
@@ -56,30 +51,21 @@ public class RAServer {
 	public RAServer(String pass) throws IOException, InterruptedException {
 		this.ldappasswd = pass;
 		this.s = ServerSocketChannel.open();
-		this.s.socket().bind(new InetSocketAddress( new Integer(Config.get("PORT_RA", "5555"))) );		//arbitrarily set to 5555
+		this.s.socket().bind(new InetSocketAddress( new Integer(Config.get("PORT_RA", "5555"))) );
 		this.s.configureBlocking(false);
 		this.masterBuffer = ByteBuffer.allocate(4096);
 		
 		this.sel = Selector.open();
 		this.keyserver= s.register(this.sel, SelectionKey.OP_ACCEPT);	//register the server selectionkey in accept
-		//----- Added -----
+
 		try {
-			this.ks = KeyStore.getInstance(KeyStore.getDefaultType()); //Je load tout les certificats en mémoire pour les avoir directement sous la main
+			this.ks = KeyStore.getInstance(KeyStore.getDefaultType()); //Load all the necessary certificate once
 		      String path = Config.get("KS_PATH_RA","test_keystore.ks");
 		      String passwd = Config.get("KS_PASS_RA","passwd");
 		      this.ks.load(new FileInputStream(path), passwd.toCharArray());
 			this.caSignerCert = (X509Certificate) ks.getCertificate(Config.get("KS_ALIAS_CERT_CA_SIG","CA_SigningOnly_Certificate"));
 			this.caSignerKey = (PrivateKey) ks.getKey(Config.get("KS_ALIAS_KEY_CA_SIG", "CA_SigningOnly_Private"), Config.get("PASSWORD_CA_SIG","").toCharArray());
 		} catch (Exception e) { e.printStackTrace();}
-		//--------------------
-		/* ############# TODO ###############
-		 * Voici les autres choses que doit faire le constructeur
-		 * - Lancer un thread autonome qui periodiquement :
-		 * 								- créer une nouvelle crl a partir des certificats stockés dans le KeyStore
-		 * 								- envoyer la crl sur le repository
-		 * 								- [ Supprimer les certificats révoqué du keyStore qui sont maintenant sur le Repository ]
-		 * 
-		 *#################################*/
 	}
 	
 	//main method in wich the main thread will be jailed.
@@ -88,8 +74,8 @@ public class RAServer {
 		for(;;) {
 			this.sel.select(); // wait for an event
 			
-			Set keys = this.sel.selectedKeys();
-			Iterator i = keys.iterator();
+			Set<SelectionKey> keys = this.sel.selectedKeys();
+			Iterator<SelectionKey> i = keys.iterator();
 			while( i.hasNext())
 			{
 				SelectionKey sk = (SelectionKey) i.next();
@@ -97,10 +83,10 @@ public class RAServer {
 				
 				if(sk.isValid()) {  //Get in only if the key is valid, which is not always the case
 				
-					if(sk == this.keyserver && sk.isAcceptable()) {  // sk == this.keyserver is optionnal because there's just the server registered in accept
+					if(sk == this.keyserver && sk.isAcceptable()) {
 						SocketChannel client = ((ServerSocketChannel)sk.channel()).accept();
 						client.configureBlocking(false);										//configure client in non-blocking
-						client.register(this.sel, SelectionKey.OP_READ); //register the client in READ with the given attachment (no need to do key.attach)
+						client.register(this.sel, SelectionKey.OP_READ);
 					}
 					
 					if ( sk.isReadable()) {
@@ -111,32 +97,28 @@ public class RAServer {
                             int byteread = client.read(this.masterBuffer);
                             if (byteread == -1) {
                                 client.close();
-                                continue; // avoid an CancelledKeyexception (because if we close client the key (sk) is not valid anymore and if(sk.isWritable()) will raise exception)
+                                continue;
                             }
                             else {
-                        		byte[] received = readBuff(byteread);
-                            	if(sk.attachment() == null) {
+                        		byte[] received = readBuff(byteread); // Read the byte[]
+                            	if(sk.attachment() == null) { //If the client does not have an attachment it means this is the first message
                             		try {
-                            			PKCS10CertificationRequest request = new PKCS10CertificationRequest(received);
-                            			System.out.println("In CSR");
+                            			PKCS10CertificationRequest request = new PKCS10CertificationRequest(received); // Try to parse it as CSR Request
                             			CSRHandlerThread cli = new CSRHandlerThread(request,this.ldappasswd);
                             			cli.start();
                             			sk.attach(cli);
                             			System.out.println(request.getEncoded());
                             		}
-                            		catch(Exception e) {//c'est une demande de revocation
-                            			System.out.println("In revocation");
-                            			String uid = new String(received);
-                            			RevocationRequestThread cli = new RevocationRequestThread(uid, this.ldappasswd, this.caSignerCert, this.caSignerKey);
-                            			cli.start();
-                            			sk.attach(cli);
+                            		catch(Exception e) {//CSR Parsing failed, so this is a String containing the identity for a revocation
+                            			String uid = new String(received); //Recreate the String from the byte[]
+                            			RevocationRequestThread cli = new RevocationRequestThread(uid, this.ldappasswd, this.caSignerCert, this.caSignerKey); //Create autonomous thread
+                            			cli.start(); // Start it
+                            			sk.attach(cli); //Attach the class to the client
                             		}
                             	}
-                            	else {
+                            	else { // Attachment not null so we forward data received to the thread without touching it.
                             		CommunicationHandler ch = (CommunicationHandler) sk.attachment();
                             		ch.setRead(received);
-                            		// On lit le tableau de byte en on l'envoie pel mel dans l'objet qu'on a caster en l'un ou l'autre.
-                            		//On passe la keys en write
                             	}
                             	sk.interestOps(SelectionKey.OP_WRITE);
                             	
@@ -152,14 +134,12 @@ public class RAServer {
 					if (sk.isWritable()) {
 						
 						SocketChannel client =  (SocketChannel) sk.channel(); 
-						//CSRHandlerThread cli = (CSRHandlerThread) sk.attachment(); //On essayera systematiquement de caster en CaClientThread si sa échou sa veut dire que c'est un Revocation..
-						CommunicationHandler ch = (CommunicationHandler)sk.attachment();
+						CommunicationHandler ch = (CommunicationHandler)sk.attachment(); // cast attachment as CommunicationHandler which is the Mother Class
 						if (ch.getBytesToWrite() == null) {
-							//System.out.println("nothing to do !");
+							//Nothing to do
 						}
 						else {
-							//System.out.println("Will write:"+ ch.getBytesToWrite());
-							client.write(ByteBuffer.wrap(ch.getBytesToWrite())); //On écrit ce qu'il y a dans et l'on ne ce soucis pas des données
+							client.write(ByteBuffer.wrap(ch.getBytesToWrite())); //Write bytes to write without touching it.
 							ch.resetBytesToWrite();
 							sk.interestOps(SelectionKey.OP_READ);
 						}
@@ -180,14 +160,5 @@ public class RAServer {
 		}
 		return myarray;
 	}
-      
-    private void writeSocket(SelectionKey k, ByteBuffer b) {
-    	SocketChannel client =  (SocketChannel) k.channel(); // gather the client socket
-    	try {
-			client.write(b);								//write the message to the client
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-    }
     
 }

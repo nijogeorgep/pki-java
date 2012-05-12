@@ -11,8 +11,6 @@ import java.security.cert.X509Certificate;
 import CryptoAPI.NeedhamSchroeder;
 
 public class NeedhamShroederClient extends Connection{
-	//prend en argument du constructeur la socket sur laquelle la connxion a été établie
-	//execute chacune des phases de manière successive.
 	boolean isServer;
 	X509Certificate myCert;
 	PrivateKey myKey;
@@ -29,7 +27,7 @@ public class NeedhamShroederClient extends Connection{
 		this.myKey = kA;
 	}
 	
-	public void bind() {
+	public void bind() { //As connect but do not instantiate the socket, just retrieve the streams from it.
 		try {
 			this.out = new DataOutputStream(this.s.getOutputStream());
 			this.in = new DataInputStream(new DataInputStream(this.s.getInputStream()));
@@ -41,7 +39,7 @@ public class NeedhamShroederClient extends Connection{
 	@Override
 	public void run() {
 		try {
-			if(this.isServer)
+			if(this.isServer) //Call two different method if we are client or server
 				this.runServer();
 			else
 				this.runClient();
@@ -53,24 +51,24 @@ public class NeedhamShroederClient extends Connection{
 	}
 	
 	public void runServer() throws IOException {
-		nonceB = NeedhamSchroeder.generateNonce();
-		byte[] step1received = this.read();
+		nonceB = NeedhamSchroeder.generateNonce(); // Generate our nonce
+		byte[] step1received = this.read(); //Read the nonceA sent by A
 		
-		this.nonceA = NeedhamSchroeder.getnonceAFromStep1(this.myKey, step1received);
+		this.nonceA = NeedhamSchroeder.getnonceAFromStep1(this.myKey, step1received); // Retreieve it
 		if (this.nonceA == null) {
 			this.errormessage = "Failed to decrypt NonceA with, PrivateKey";
 			this.finishedOK = false;
 			return;
 		}
-		byte[] step2 = NeedhamSchroeder.step2nonceAnonceBToA(this.certB, this.myKey, nonceB, step1received, true);
+		byte[] step2 = NeedhamSchroeder.step2nonceAnonceBToA(this.certB, this.myKey, nonceB, step1received, true); // Create the answer composed of the two nonce
 		if (step2 == null) {
 			this.errormessage = "Failed to decrypt NonceA with, PrivateKey";
 			this.finishedOK = false;
 			return;
 		}
-		this.out.write(step2);
-		byte[] step3 = this.read();
-		if(NeedhamSchroeder.step3received(myKey, nonceB, step3)) {
+		this.out.write(step2); // Send it
+		byte[] step3 = this.read();// Read the reply
+		if(NeedhamSchroeder.step3received(myKey, nonceB, step3)) { //If true it means A send us back the nonceB which means we is really who he pretend to be
 			this.finishedOK = true;
 		}
 		else {
@@ -80,24 +78,24 @@ public class NeedhamShroederClient extends Connection{
 	}
 	
 	public void runClient() throws IOException {
-		nonceA = NeedhamSchroeder.generateNonce();
-		byte[] step1 = NeedhamSchroeder.step1nonceAToB(this.myCert, this.myKey, this.certB, nonceA);
-		this.out.write(step1);
-		byte[] step2received = this.read();
-		this.nonceB = NeedhamSchroeder.getNonceBFromStep2(this.myKey, step2received, nonceA);
-		if (this.nonceB == null) {
+		nonceA = NeedhamSchroeder.generateNonce(); // Generate our nonce
+		byte[] step1 = NeedhamSchroeder.step1nonceAToB(this.myCert, this.myKey, this.certB, nonceA); // Create the first packet
+		this.out.write(step1); // Send it to B
+		byte[] step2received = this.read(); // Receive the reply
+		this.nonceB = NeedhamSchroeder.getNonceBFromStep2(this.myKey, step2received, nonceA); // Get the nonceB from the reply
+		if (this.nonceB == null) { 
 			this.errormessage = "NonceB received invalid";
 			this.finishedOK = false;
 			return;
 		}
-		byte[] step3 = NeedhamSchroeder.step3nonceBToB(this.myKey, this.certB, step2received, nonceA);
+		byte[] step3 = NeedhamSchroeder.step3nonceBToB(this.myKey, this.certB, step2received, nonceA); // Check if the nonceA replied is ok, and by the same way create the reply
 		if(step3 == null) {
 			this.errormessage = "Nonce received not equal";
 			this.finishedOK = false;
 			return;
 		}
 		else
-			this.out.write(step3);
+			this.out.write(step3); // Send the last packet which is the B challenge back
 		this.finishedOK = true;
 	}
 	

@@ -1,10 +1,6 @@
 package CA;
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
@@ -24,40 +20,27 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.ListIterator;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import org.bouncycastle.asn1.pkcs.Attribute;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x509.X509Name;
-import org.bouncycastle.cert.ocsp.OCSPReq;
-import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
-import com.sun.jndi.ldap.LdapClient;
-
 import CryptoAPI.CSRManager;
-import CryptoAPI.OCSPManager;
-import Ldap.LDAP;
-import Ldap.ldaputils;
 import Utils.Config;
 
 public class CAServer {
 
-  ServerSocketChannel s;      //server socket
-  ByteBuffer masterBuffer;    //buffer used to store temporarily bytes read in sockets
-  Selector sel;
-  SelectionKey keyserver;     //SelectionKey of the server
-  PrivateKey cakey;
-  X509Certificate caCert;
-  KeyStore ks;
-  String authorizedHost;
-  
+	ServerSocketChannel s;
+	ByteBuffer masterBuffer; // buffer used to store temporarily bytes read in sockets
+	Selector sel;
+	SelectionKey keyserver; // SelectionKey of the server
+	PrivateKey cakey;
+	X509Certificate caCert;
+	KeyStore ks;
+	String authorizedHost;
+	String crlurl;
+	String ocspurl;
+	
     public static void main(String[] args) throws UnrecoverableKeyException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, NoSuchProviderException, SignatureException, OperatorCreationException, CertificateException {
       Security.addProvider(new BouncyCastleProvider());
         try {
@@ -73,21 +56,28 @@ public class CAServer {
     
   public CAServer() throws IOException, InterruptedException {
     this.s = ServerSocketChannel.open();
-    this.s.socket().bind(new InetSocketAddress( new Integer(Config.get("PORT_CA","6666"))  ));    //arbitrarily set to 5555
+    this.s.socket().bind(new InetSocketAddress( new Integer(Config.get("PORT_CA","6666"))  )); //Read in the configuration the port to listen on
     this.s.configureBlocking(false);
     this.masterBuffer = ByteBuffer.allocate(4096);
     this.sel = Selector.open();
     this.keyserver= s.register(this.sel, SelectionKey.OP_ACCEPT); //register the server selectionkey in accept
-    this.authorizedHost = Config.get("IP_RA", "localhost");
+    this.authorizedHost = Config.get("IP_RA", "localhost"); //Read in the config file the only host that will be allowed to send messages
     try {
       this.ks = KeyStore.getInstance(KeyStore.getDefaultType()); //Je load tout les certificats en mémoire pour les avoir directement sous la main
       String path = Config.get("KS_PATH_CA","test_keystore.ks");
       String pass = Config.get("KS_PASS_CA","passwd");
       this.ks.load(new FileInputStream(path), pass.toCharArray());
+      
+      //Load his certificate and private key
       this.cakey = (PrivateKey) ks.getKey(Config.get("KS_ALIAS_KEY_CA_INTP","CA_IntermediairePeople_Private"), Config.get("PASSWORD_CA_INTP", "default_val").toCharArray());
       this.caCert = (X509Certificate)ks.getCertificate(Config.get("KS_ALIAS_CERT_CA_INTP","CA_IntermediairePeople_Certificate"));
     } catch (Exception e) { e.printStackTrace();}
-    
+    String ldapip = Config.get("LDAP_IP","localhost");
+    String ldapport = Config.get("LDAP_PORT","389");
+    String repoip = Config.get("IP_REPOSITORY","localhost");
+    String repoport = Config.get("PORT_REPOSITORY", "7003");
+    this.crlurl = "ldap://" + ldapip + ":" + ldapport + "/" + Config.get("USERS_BASE_DN","");
+    this.ocspurl = "http://" + repoip + ":" + repoport;
   }
   
   //main method in wich the main thread will be jailed.
@@ -96,8 +86,8 @@ public class CAServer {
     for(;;) {
       this.sel.select(); // wait for an event
       
-      Set keys = this.sel.selectedKeys();
-      Iterator i = keys.iterator();
+      Set<SelectionKey> keys = this.sel.selectedKeys();
+      Iterator<SelectionKey> i = keys.iterator();
       while( i.hasNext())
       {
         SelectionKey sk = (SelectionKey) i.next();
@@ -108,7 +98,7 @@ public class CAServer {
           if(sk == this.keyserver && sk.isAcceptable()) {
             SocketChannel client = ((ServerSocketChannel)sk.channel()).accept();
             client.configureBlocking(false);                    //configure client in non-blocking
-            client.register(this.sel, SelectionKey.OP_READ); //register the client in READ with the given attachment (no need to do key.attach)
+            client.register(this.sel, SelectionKey.OP_READ);
         }
           
           if ( sk.isReadable()) {
@@ -122,26 +112,24 @@ public class CAServer {
                                 continue; // avoid an CancelledKeyexception (because if we close client the key (sk) is not valid anymore and if(sk.isWritable()) will raise exception)
                             }
                             else {
-                              //if(client.socket().getInetAddress().equals(Utils.Config.get("IP_RA", "")))
+
                             String h_addr = client.socket().getInetAddress().getHostAddress();
                             String h_name = client.socket().getInetAddress().getHostName();
-                              if(this.authorizedHost.equals(h_name) || this.authorizedHost.equals(h_addr))
-                              {
-                                //récupération du csr
-                                PKCS10CertificationRequest csr = new PKCS10CertificationRequest( readBuff(byteread));
-                                //PrivateKey pk = (PrivateKey) ks.getKey("CA_IntermediairePeople_Private", Config.get("PASSWORD_CA_INTP", "default_val").toCharArray());
-                                //création d'un certificat signé
-                                 //BigInteger bigInt = new BigInteger(ldaputils.getUIDFromSubject(csr.getSubject().toString()));
-                                 BigInteger bigInt = new BigInteger(String.valueOf(System.currentTimeMillis()));
-                                 X509Certificate c = CSRManager.retrieveCertificateFromCSR(csr,cakey , caCert, bigInt);
-                                 sk.attach(c.getEncoded());
-                                 sk.interestOps(SelectionKey.OP_WRITE);
+                            
+                              if(this.authorizedHost.equals(h_name) || this.authorizedHost.equals(h_addr)) {//Process messages only if they come from the authorizedHost
+	                               //Read in the CSR
+	                               PKCS10CertificationRequest csr = new PKCS10CertificationRequest( readBuff(byteread));
+	                               BigInteger bigInt = new BigInteger(String.valueOf(System.currentTimeMillis())); //The serial will be the timestamp, by this way we are none will be the same.
+	                               X509Certificate c = CSRManager.retrieveCertificateFromCSR(csr,cakey , caCert, bigInt, crlurl, ocspurl); //Call the method with his own certificate and key.
+	                               sk.attach(c.getEncoded()); //Attach back the certificate, to allow it to be written back to the RA.
+	                               sk.interestOps(SelectionKey.OP_WRITE); // switch key to write
                               }
                               else
                               {
-                                client.write(ByteBuffer.wrap("Not Authorized to connect\n".getBytes()));
-                                client.close();
+                                client.write(ByteBuffer.wrap("Not Authorized to connect\n".getBytes())); 
+                                client.close(); //Kick the no authorized client
                                 System.out.println("Unauthorized IP kicked !");
+                                continue;
                               }
                             }           
                         } 
@@ -152,12 +140,12 @@ public class CAServer {
                         }
           }
           
-          else if (sk.isWritable()) {
-            byte[] attachment = (byte[]) sk.attachment(); //On récupère l'attachment
-            SocketChannel client =  (SocketChannel) sk.channel(); 
-            client.write(ByteBuffer.wrap(attachment)); //On écrit ce que l'on a récupéré
-            
-            sk.interestOps(SelectionKey.OP_READ); //On repasse la clé en read
+          if (sk.isWritable()) {
+	            byte[] attachment = (byte[]) sk.attachment(); //Get the attachment which is a certificate encoded in byte []
+	            SocketChannel client =  (SocketChannel) sk.channel(); 
+	            client.write(ByteBuffer.wrap(attachment)); //Write it back
+	            
+	            sk.interestOps(SelectionKey.OP_READ); //Put the key back in read
           }
         }
         

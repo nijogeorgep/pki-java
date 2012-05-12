@@ -1,13 +1,11 @@
 package CryptoAPI;
 
-import java.io.IOException;
+
 import java.security.InvalidKeyException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Signature;
-import java.security.cert.CertificateException;
+
 import java.security.cert.X509Certificate;
 
 import javax.crypto.BadPaddingException;
@@ -15,12 +13,13 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.operator.OperatorCreationException;
 
 public class AsymetricKeyManager {
 	
 	public static byte[] cipher(X509Certificate cert, byte[] data) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+	/*
+	 * Cipher the data with the certificate given in argument
+	 */
 		try {
 			Cipher cipher = Cipher.getInstance("RSA");
 		    cipher.init(Cipher.ENCRYPT_MODE, cert.getPublicKey());
@@ -33,6 +32,9 @@ public class AsymetricKeyManager {
 	
 	
 	public static byte[] decipher(PrivateKey key, byte[] data) {
+	/*
+	 * Decipher the data with the PrivateKey given in argument
+	 */
 		try {
 			Cipher cipher = Cipher.getInstance("RSA");
 		    cipher.init(Cipher.DECRYPT_MODE, key);
@@ -44,9 +46,12 @@ public class AsymetricKeyManager {
 	}
 	
 	public static byte[] sign(PrivateKey key, byte[] data) {
+	/*
+	 * Sign the data with the PrivateKey given in argument
+	 */
 		try {
 			Signature sig = Signature.getInstance("SHA1withRSA");
-		    sig.initSign(key); //ou initVerify avec pubkey
+		    sig.initSign(key);
 		    
 		    sig.update(data);
 		    return sig.sign();
@@ -57,6 +62,10 @@ public class AsymetricKeyManager {
 	}
 	
 	public static boolean verifySig(X509Certificate cert, byte[] dataoriginal, byte[] datasigned) {
+	/*
+	 * Verify the signature of datasigned with the dataoriginal using the given certificate
+	 * @return: boolean if either the signature is good or not
+	 */
 		try {
 			 Signature sig = Signature.getInstance("SHA1withRSA");
 		     sig.initVerify(cert.getPublicKey()); //ou initVerify avec pubkey
@@ -66,14 +75,5 @@ public class AsymetricKeyManager {
 		catch (Exception e) {
 			return false;
 		}
-	}
-	
-	public static void main(String[] args) throws NoSuchAlgorithmException, OperatorCreationException, CertificateException, IOException {
-	    KeyPair   kp = KeyPairGenerator.getInstance("RSA").generateKeyPair();
-	    X509Certificate cert =  CertificateManager.createSelfSignedCertificate("Coucou toto", kp);
-	    byte[] s = "coucou".getBytes();
-	    byte[] signed = sign(kp.getPrivate(), s);
-	    System.out.println(verifySig(cert, s, signed));
-	    
 	}
 }

@@ -20,7 +20,7 @@ import CryptoAPI.MessageDigestUtils;
 
 public class ConnectionCSR extends Connection {
 
-	X509Certificate mycert;
+	X509Certificate mycert; // the newly generated certificate will be stored here
 	PrivateKey key;
 	
 	public ConnectionCSR(String ip, Integer port) {
@@ -31,33 +31,30 @@ public class ConnectionCSR extends Connection {
 	    Security.addProvider(new BouncyCastleProvider());
 	    try {
 	    	
-		    KeyPair   kp = KeyPairGenerator.getInstance("RSA").generateKeyPair();
-		    this.key = kp.getPrivate();
+		    KeyPair   kp = KeyPairGenerator.getInstance("RSA").generateKeyPair(); // Générate the key pair
+		    this.key = kp.getPrivate(); //Keep the private key
 		    
-		    String identite = ClientUtils.readIdentity();
+		    String identite = ClientUtils.readIdentity(); //Read our identity
 		    System.out.print("Please enter your password: ");
 		    String pwd = ClientUtils.saisieString();
-		    PKCS10CertificationRequest request = CSRManager.generate_csr(identite, kp);
+		    PKCS10CertificationRequest request = CSRManager.generate_csr(identite, kp); // Generate the CSR
 		    
-		    byte[] bytes = request.getEncoded(); //récupère le tableau de bytes de la requete
+		    byte[] bytes = request.getEncoded(); //get the byte[] of the CSR
 		    
-		    out.write(bytes); //on envoie la requete
+		    out.write(bytes); //Write The CSR
 		    
-		    String reply  = new String(this.read());
-		    //Do nothing with it, it's just like a ACK
-		    //System.out.println(new String(reply));
+		    new String(this.read());
+		    //Do nothing with it, it's just like a acknowledgement of the CSR
 		    
-		    out.write(MessageDigestUtils.digest(pwd));
+		    out.write(MessageDigestUtils.digest(pwd)); // Digest the password to does not send it in clear
 		    
 		    byte[] rep = this.read();
-		    X509Certificate cert  = CertificateUtils.certificateFromByteArray(rep);
-		    if (cert == null) {
-		      //System.out.println(new String(rep));
+		    X509Certificate cert  = CertificateUtils.certificateFromByteArray(rep); // Try to recreate the certificate from the byte[] read
+		    if (cert == null) { // If it does not succeed it means that it has been refused and so the byte[] is the error message
 		    	this.errormessage = new String(rep);
 		    	this.finishedOK = false;
 		    }
 		    else {
-		    	//System.out.println(cert.toString());
 		    	this.mycert = cert;
 		    	this.finishedOK = true;
 		    }
@@ -70,7 +67,7 @@ public class ConnectionCSR extends Connection {
 	    }
 	}
 
-	public boolean storeCertAndKey(KeyStore ks, String alcert, String alkey, String alpass) {
+	public boolean storeCertAndKey(KeyStore ks, String alcert, String alkey, String alpass) { //Store the certificate and the key using the aliases given in parameter
 		try {
 			ks.setCertificateEntry(alcert, this.mycert);
 			Certificate[] chain = new Certificate[2];

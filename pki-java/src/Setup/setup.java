@@ -35,13 +35,21 @@ public class setup {
 	String password;
 	String aliasC;
 	String aliasK;
-	
+	String crlrooturl;
+	String crlurl;
+	String ocspurl;
 	
 	public setup() throws Exception {
 		prop = new Properties();
 	    InputStream is = new FileInputStream("config");
 	    prop.load(is);
-	    
+	    String ldapip = Config.get("LDAP_IP","localhost");
+	    String ldapport = Config.get("LDAP_PORT","389");
+	    String repoip = Config.get("IP_REPOSITORY","localhost");
+	    String repoport = Config.get("PORT_REPOSITORY", "7003");
+	    this.crlrooturl = "ldap://" + ldapip +":" + ldapport +"/ou=rootCA," + Config.get("LDAP_ROOT_DN","dc=pkirepository,dc=org");
+	    this.crlurl = "ldap://" + ldapip + ":" + ldapport + "/" + Config.get("USERS_BASE_DN","");
+	    this.ocspurl = "http://" + repoip + ":" + repoport;
 	}
 
 	
@@ -56,19 +64,20 @@ public class setup {
 			}
 			else
 				System.out.println("Password OK");
+			
 			//------ CA Creation -------
 			openKeyStore("CA");
-			//Si le CA existe deja on le supprime
+			//If the CA already exists then delete it
 			aliasC = Config.get("KS_ALIAS_CERT_CA","CA_Certificate");
 			aliasK = Config.get("KS_ALIAS_KEY_CA", "CA_Private");
 			removeAlias(aliasC);
 			removeAlias(aliasK);
 
-			//Crée le CA autosigné
+			//Create the self signed CA
 			KeyPair		keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
-			X509Certificate caCert =  CertificateManager.createSelfSignedCertificate("CA Root", keyPair);
+			X509Certificate caCert =  CertificateManager.createSelfSignedCertificate("CA Root", keyPair, this.crlrooturl, this.ocspurl);
 				
-			//Ajout le certificat et la clé privé du CA dans le keystore
+			//Add the certificate and the private key of the CA in the Keystor
 			ks.setCertificateEntry(aliasC, caCert);
 			ks.setKeyEntry(aliasK, keyPair.getPrivate(), Config.get("PASSWORD_CA_ROOT","").toCharArray(), new Certificate[] { caCert});
 			ldaputils.setCertificateCA(caCert, "ou=rootCA,dc=pkirepository,dc=org",password);
@@ -82,16 +91,13 @@ public class setup {
 			removeAlias(aliasSigC);
 			removeAlias(aliasSigK);
 
-			//Crée le CA autosigné
 			KeyPair		keyPairSig = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 
-			X509Certificate sigPub = CertificateManager.createSignedCertificateIntermediaire("CA Root", "CA CRL OCSP Signing", keyPairSig, caCert, keyPair.getPrivate(),BigInteger.valueOf(1));
+			X509Certificate sigPub = CertificateManager.createSignedCertificateIntermediaire("CA Root", "CA CRL OCSP Signing", keyPairSig, caCert, keyPair.getPrivate(),BigInteger.valueOf(1), this.crlurl,this.ocspurl);
 			
-			//Ajout le certificat et la clé privé du CA dans le keystore
 			ldaputils.setCertificateCA(caCert, "ou=signingCA,ou=rootCA,dc=pkirepository,dc=org",password);
 			ks.setCertificateEntry(aliasSigC, sigPub);
 			ks.setKeyEntry(aliasSigK, keyPairSig.getPrivate(),Config.get("PASSWORD_CA_SIG","").toCharArray(), new Certificate[] { caCert, sigPub});
-			//Il ne faut pas le mettre dans le keystore du CA mais dans celui du Repository
 			//-----------------------------------------------
 			
 			//------- CA Intermediaire People --------
@@ -100,12 +106,10 @@ public class setup {
 			removeAlias(aliasPeopleC);
 			removeAlias(aliasPeopleK);
 
-			//Crée le CA autosigné
 			KeyPair		keyPairInt = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 
-			X509Certificate intCert = CertificateManager.createSignedCertificateIntermediaire("CA Root", "CA Intermediaire People", keyPairInt, caCert, keyPair.getPrivate(),BigInteger.valueOf(1));
-			
-			//Ajout le certificat et la clé privé du CA dans le keystore
+			X509Certificate intCert = CertificateManager.createSignedCertificateIntermediaire("CA Root", "CA Intermediaire People", keyPairInt, caCert, keyPair.getPrivate(),BigInteger.valueOf(1),this.crlurl,this.ocspurl);
+
 			ks.setCertificateEntry(aliasPeopleC, intCert);
 			ks.setKeyEntry(aliasPeopleK, keyPairInt.getPrivate(),Config.get("PASSWORD_CA_INTP","").toCharArray(), new Certificate[] { caCert, intCert});
 			ldaputils.setCertificateCA(caCert, "ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org",password);
@@ -118,13 +122,11 @@ public class setup {
 			String aliasServerK = Config.get("KS_ALIAS_KEY_CA_INTS","CA_IntermediaireServer_Private");
 			removeAlias(aliasServerC);
 			removeAlias(aliasServerK);
-			
-			//Crée le CA autosigné
+
 			KeyPair		keyPairIntS = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 
-			X509Certificate intCertS = CertificateManager.createSignedCertificateIntermediaire("CA Root", "CA Intermediaire Server", keyPairIntS, caCert, keyPair.getPrivate(),BigInteger.valueOf(1));
-			
-			//Ajout le certificat et la clé privé du CA dans le keystore
+			X509Certificate intCertS = CertificateManager.createSignedCertificateIntermediaire("CA Root", "CA Intermediaire Server", keyPairIntS, caCert, keyPair.getPrivate(),BigInteger.valueOf(1),this.crlurl,this.ocspurl);
+
 			ks.setCertificateEntry(aliasServerC, intCert);
 			ks.setKeyEntry(aliasServerK, keyPairInt.getPrivate(),Config.get("PASSWORD_CA_INTS","").toCharArray(), new Certificate[] { caCert, intCertS});
 			ldaputils.setCertificateCA(caCert, "ou=intermediateServerCA,ou=rootCA,dc=pkirepository,dc=org",password);
@@ -144,7 +146,7 @@ public class setup {
 			ks.setKeyEntry(aliasSigK, keyPairSig.getPrivate(),Config.get("PASSWORD_CA_SIG","").toCharArray(), new Certificate[] { caCert, sigPub});
 			saveKeyStore();
 			c2 = makeChoice("Configure Client ?","Yes", "No");
-			if (c2 == 1) {
+			if (c2 == 1) { // If the user decide to configure the client here certificates are directly added
 					openKeyStore("USER");
 					ks.setCertificateEntry(aliasSigC, sigPub);
 					ks.setCertificateEntry(aliasC, caCert);
@@ -155,7 +157,7 @@ public class setup {
 		
 		if (c2 == 0) {
 			c2 = makeChoice("Configure Client ?","Yes", "No");
-			if (c2 == 1) {
+			if (c2 == 1) { // If the user decide to configure here certificate will be downloaded on the LDAP
 				openKeyStore("USER");
 				String aliasSigC = Config.get("KS_ALIAS_CERT_CA_SIG","CA_SigningOnly_Certificate");
 				String aliasPeopleC = Config.get("KS_ALIAS_CERT_CA_INTP","CA_IntermediairePeople_Certificate");
@@ -173,6 +175,7 @@ public class setup {
 	}
 	
 	public void openKeyStore(String entity) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+		// Generic method to open a keystore
 		ks = KeyStore.getInstance(KeyStore.getDefaultType());
 		
 		path = Config.get("KS_PATH_"+entity,"keystores/"+entity.toLowerCase()+"_keystore.ks");
@@ -181,7 +184,6 @@ public class setup {
 			ks.load(new FileInputStream(path), pass.toCharArray());
 		}
 		catch (FileNotFoundException e) {
-			System.out.println("First launch !");
 			ks.load(null);
 		}
 	}
