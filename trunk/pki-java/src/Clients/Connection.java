@@ -21,15 +21,14 @@ public abstract class Connection {
 		this.port =port;
 	}
 	
-	public void connect(){
-		try {
+	public void connect() throws Exception {
 			this.s = new Socket(this.ip, this.port);
 			this.out = new DataOutputStream(s.getOutputStream()); //A noter que j'utilise des DataOutputStream et pas des ObjectOutputStream
 			this.in = new DataInputStream(s.getInputStream());
-		}
-		catch(Exception e) {
-			this.finishedOK =false;
-		}
+	}
+	
+	public boolean connectionOK() {
+		return this.finishedOK = true;
 	}
 	
 	public abstract void run();

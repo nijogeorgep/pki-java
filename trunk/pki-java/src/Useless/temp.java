@@ -5,6 +5,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -14,14 +15,9 @@ import java.util.Scanner;
 
 public class temp {
 	public static void main(String[] args) throws Exception {
-		File f = new File("src/Playground/cert.fis");
-		byte[] buffer = new byte[(int)f.length()];
-		DataInputStream in = new DataInputStream(new FileInputStream(f));
-		in.readFully(buffer);
-		in.close();
-		
-		X509Certificate cert = (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(buffer));
-		
+		ObjectInputStream in = new ObjectInputStream(new FileInputStream("src/Playground/cert.fis"));
+		X509Certificate cert = (X509Certificate) in.readObject();
+
 		KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
 		Scanner sc = new Scanner(System.in);
 		String name =  sc.nextLine();

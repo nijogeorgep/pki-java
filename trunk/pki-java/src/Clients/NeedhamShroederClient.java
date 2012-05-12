@@ -55,7 +55,13 @@ public class NeedhamShroederClient extends Connection{
 	public void runServer() throws IOException {
 		nonceB = NeedhamSchroeder.generateNonce();
 		byte[] step1received = this.read();
+		
 		this.nonceA = NeedhamSchroeder.getnonceAFromStep1(this.myKey, step1received);
+		if (this.nonceA == null) {
+			this.errormessage = "Failed to decrypt NonceA with, PrivateKey";
+			this.finishedOK = false;
+			return;
+		}
 		byte[] step2 = NeedhamSchroeder.step2nonceAnonceBToA(this.certB, this.myKey, nonceB, step1received, true);
 		if (step2 == null) {
 			this.errormessage = "Failed to decrypt NonceA with, PrivateKey";
@@ -68,7 +74,7 @@ public class NeedhamShroederClient extends Connection{
 			this.finishedOK = true;
 		}
 		else {
-			this.errormessage = "Nonce received not equal";
+			this.errormessage = "Nonce received not equal or fail to decipher";
 			this.finishedOK = false;
 		}
 	}
@@ -79,6 +85,11 @@ public class NeedhamShroederClient extends Connection{
 		this.out.write(step1);
 		byte[] step2received = this.read();
 		this.nonceB = NeedhamSchroeder.getNonceBFromStep2(this.myKey, step2received, nonceA);
+		if (this.nonceB == null) {
+			this.errormessage = "NonceB received invalid";
+			this.finishedOK = false;
+			return;
+		}
 		byte[] step3 = NeedhamSchroeder.step3nonceBToB(this.myKey, this.certB, step2received, nonceA);
 		if(step3 == null) {
 			this.errormessage = "Nonce received not equal";

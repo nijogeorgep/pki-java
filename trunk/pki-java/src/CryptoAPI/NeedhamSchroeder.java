@@ -59,7 +59,7 @@ public class NeedhamSchroeder {
 
 			byte[] nonceAnonceBEncrypted = CMSDataManager.encryptMessage(container, certA);
 			return nonceAnonceBEncrypted;
-		} catch (CMSException e) {
+		} catch (Exception e) {
 			//e.printStackTrace();
 		}
 		return null;
@@ -105,13 +105,17 @@ public class NeedhamSchroeder {
 	}
 			
 	public static boolean step3received(PrivateKey keyB, BigInteger nonceBOrig, byte[] nonceBEnc) {
-		byte[] nonceB = (byte[]) CMSDataManager.decryptMessage(nonceBEnc, keyB);
-		if(nonceBOrig.equals(new BigInteger(nonceB))){
-			System.out.println("OK");
-			return true;
+		try {
+			byte[] nonceB = (byte[]) CMSDataManager.decryptMessage(nonceBEnc, keyB);
+			if(nonceBOrig.equals(new BigInteger(nonceB))){
+				System.out.println("OK");
+				return true;
+			}
+			else
+				return false; //return null if the nonce is not equal
+		}catch(Exception e) {
+			return false;
 		}
-		else
-			return false; //return null if the nonce is not equal
 	}
 	
 	public static BigInteger generateNonce() {
