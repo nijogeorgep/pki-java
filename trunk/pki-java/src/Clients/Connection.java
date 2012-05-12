@@ -3,11 +3,14 @@ package Clients;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
 public abstract class Connection {
+	/*
+	 * This is a Mother Class that manage everything about socket, connect read write and so on.
+	 * So all classes that implement it does not have to worry about it.
+	 * Moreover it setup an architecture to know if the client successfully ended or not via the errormessage attribute and the method finishedWell()
+	 */
 	String ip;
 	Integer port;
 	String errormessage;
@@ -23,12 +26,8 @@ public abstract class Connection {
 	
 	public void connect() throws Exception {
 			this.s = new Socket(this.ip, this.port);
-			this.out = new DataOutputStream(s.getOutputStream()); //A noter que j'utilise des DataOutputStream et pas des ObjectOutputStream
+			this.out = new DataOutputStream(s.getOutputStream()); // Gather to two Stream into local attributes
 			this.in = new DataInputStream(s.getInputStream());
-	}
-	
-	public boolean connectionOK() {
-		return this.finishedOK = true;
 	}
 	
 	public abstract void run();
@@ -42,14 +41,14 @@ public abstract class Connection {
 	}
 	
 	public byte[] read() throws IOException {
-		byte[] res = new byte[4096]; //Créer un tableau très grand. (Je m'attends a tout recevoir d'un coup j'ai pas envie de me faire chier)
-		int read = this.in.read(res); //Je lis
-		if (read == -1) { //si on a rien lu c'est que le serveur a eu un problème
+		byte[] res = new byte[4096]; //Create an array big enough to does not be obliged to join all pieces.
+		int read = this.in.read(res); //Read in the socket and get back how many byte have been read
+		if (read == -1) { //If nothing has been read raise an exception
 				throw new IOException();
 		}
 		
-		byte[] res_fitted = new byte[read]; //je déclare un tableau de la taille juste
-		for (int i=0; i < read; i++) { //je recopie le byte dedans
+		byte[] res_fitted = new byte[read]; //Now instantiate an array with the right size
+		for (int i=0; i < read; i++) { //Copy everything back into
 			res_fitted[i] = res[i];
 		}
 		return res_fitted;

@@ -3,22 +3,16 @@ package Clients;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.math.BigInteger;
-import java.net.BindException;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
-
-import CryptoAPI.NeedhamSchroeder;
 import CryptoAPI.SymmetricKeyManager;
 
 public class ConnectionChat extends Connection{
-
-	byte[] key;
-	//boolean ended = false;
-	//boolean diedOk = true;
+	/*
+	 * That class take in constructor the session key to use and the socket on which dialog.
+	 */
+	byte[] key; // Our session key
 	
 	public ConnectionChat(String ip, Integer port, Socket s, byte[] key) {
 		super(ip,port);
@@ -26,7 +20,7 @@ public class ConnectionChat extends Connection{
 		this.key = key;
 	}
 	
-	public void bind() {
+	public void bind() { //Method that will be called instead of connect. It basically do the same but not connect on the socket.
 		try {
 			this.out = new DataOutputStream(this.s.getOutputStream());
 			this.in = new DataInputStream(new DataInputStream(this.s.getInputStream()));
@@ -37,18 +31,20 @@ public class ConnectionChat extends Connection{
 	
 	
 	public void run() {
-		InputThread th = new InputThread(this.out);
-		th.start();
+		InputThread th = new InputThread(this.out); //Instantiate our private class InputThread. (take in args the outpustream on which write)
+		th.start(); // Start the thread
 		
 		byte[] received;
 		String inputmessage;
 		try {
-			for(;;) {
-				if(th.ended)
+			for(;;) { // Infinite loop
+				
+				if(th.ended) //Check if the user want to quit (having typed quit) and then break
 					break;
-				received = this.read();
-				inputmessage = new String(SymmetricKeyManager.decipher(key, received));
-				if (inputmessage.equals("bye")) {
+				
+				received = this.read(); // Read on the socket
+				inputmessage = new String(SymmetricKeyManager.decipher(key, received)); // Decipher the message
+				if (inputmessage.equals("bye")) { // If the message is bye we write it back and close.
 					this.out.write(SymmetricKeyManager.cipher(key, "bye".getBytes()));
 					if (!(th.ended))
 						System.out.println("Client said bye\n Please Press a Key..");
@@ -56,10 +52,10 @@ public class ConnectionChat extends Connection{
 				}
 					System.out.println(inputmessage);
 			}
-			this.finishedOK = true;
-			th.dieNow = true;
+			this.finishedOK = true; 
+			th.dieNow = true; //Tell the thread to die if it's not already the case
 		}
-		catch(IOException e) {
+		catch(IOException e) { // Catch the various exceptions that can occur.
 			if (th.ended)
 				this.finishedOK = true;
 			else {
@@ -74,7 +70,7 @@ public class ConnectionChat extends Connection{
 		finally{
 			th.dieNow = true;
 			try {
-				if(!(th.ended))
+				if(!(th.ended)) //Join the tread nicely
 					th.join();
 			} catch (InterruptedException e) {e.printStackTrace();}
 		}
@@ -82,11 +78,14 @@ public class ConnectionChat extends Connection{
 
 	
 	private class InputThread extends Thread implements Runnable {
+		/*
+		 * Private class that loop on the keyboard input and cipher the message in order to send it to the socket.
+		 */
 		String outputmessage;
 		OutputStream out;
 		boolean ended = false;
-		//boolean diedok = true;
 		boolean dieNow = false;
+		
 		public InputThread(OutputStream o) {
 			this.out = o;
 		}
@@ -97,50 +96,25 @@ public class ConnectionChat extends Connection{
 				for(;;) {
 					if(dieNow)
 						break;
-					outputmessage = sc.nextLine();
-					if(outputmessage.equals("quit")) {
+					outputmessage = sc.nextLine(); // Read the line
+					if(outputmessage.equals("quit")) { //If what was typed is quit then we write bye. And the thread will finished by itself
 						this.out.write(SymmetricKeyManager.cipher(key,"bye".getBytes()));
 						break;
 					}
 					else
-						this.out.write(SymmetricKeyManager.cipher(key,outputmessage.getBytes()));
+						this.out.write(SymmetricKeyManager.cipher(key,outputmessage.getBytes())); // Otherwise we just cipher and send
 				}
 			}
 			catch(IOException e) {
-				//ne fait rien le thread va s'arreter tout seul
+				//Do nothing the thread will gently die
 			}
 			catch(Exception e) {
 				e.printStackTrace();
-				System.out.println("Error while trying to encrypt");
+				System.out.println("Error while trying to cipher");
 			}
 			finally {
 				ended= true;
 			}
 		}
-	}
-	
-	public static void main(String[] args) throws IOException {
-		
-		Socket s;
-		
-		try {
-			ServerSocket server_sock = new ServerSocket(5555);
-			System.out.println("Wait for a connection...");
-			s = server_sock.accept();
-		}
-		catch(BindException e) {
-			s = new Socket("localhost", 5555);
-		}
-		
-		ConnectionChat chat = new ConnectionChat("localhost", 5555, s, NeedhamSchroeder.generateSessionKey(BigInteger.ONE, BigInteger.TEN));
-		chat.bind();
-		chat.run();
-		chat.close();
-		if (chat.finishedWell())
-			System.out.println("Done.");
-		else {
-			System.out.println(chat.getErrorMessage());
-		}
-	}
-	
+	}	
 }

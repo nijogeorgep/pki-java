@@ -1,21 +1,13 @@
 package RA;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.FileInputStream;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.net.Socket;
-import java.net.UnknownHostException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
-
 import org.bouncycastle.asn1.x509.CRLReason;
 import org.bouncycastle.cert.X509CRLHolder;
-import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
 import CryptoAPI.CRLManager;
 import CryptoAPI.CertificateUtils;
@@ -31,20 +23,7 @@ public class RevocationRequestThread extends Thread implements Runnable, Communi
 	PrivateKey caSignerKey;
 	String uid = "";
 	String pass;
-/* ######## README #########
- * Bon j'explique brievement l'idée qui m'est passé par la tête.
- * Cet objet sera crée pour chaque demande de revocation faite auprès du RA.
- * Concrètement ce quie fait cet objet:
- * Il lancera un thread autonome (pour pas bloquer le RA) qui se connectera au CA pour faire signer la demande de revocation.
- * Puis il se connectera au Repository pour envoyer la revocation.
- * Une methode permettra au RA de savoir a tout moment ou en est la progression de la revocation, et si elle à échoué ou pas.
- * 
- * Comment ça va marcher coté RA ?
- * Concretement lorsque le RA reçoit d'un client une demande de révocation il crée un objet RevocationRequest qu'il lance et met en attachment de la SelectionKey
- * A chaque fois qu'il va looper sur les Keys et tomber sur la SelectionKeys qui contient cet objet il va consulter son status. Tant que c'est en progression il le laisse faire.
- * Ensuite que le résultat soit positif ou négatif il renvoie la réponse récupérée, puis ferme la socket.
- *########################*/
-	
+
 	public RevocationRequestThread(String id,String pass, X509Certificate sigCert, PrivateKey key) {
 		this.uid = id;
 		this.caSignerCert = sigCert;
@@ -54,31 +33,30 @@ public class RevocationRequestThread extends Thread implements Runnable, Communi
     	
     public void run()  { //method that implement Runnable
     	
-    	this.setBytesToWrite("OK first".getBytes());
+    	this.setBytesToWrite("OK first".getBytes()); // Has for CSRHandler if we are here it means we have already received the identity
     	
     	for (;;) {
 			if(hasSomethingToRead()) {
-				byte[] bytes = this.getRead(); //Ici pour un CSR ce qu'on récupère c'est le password
+				byte[] bytes = this.getRead(); //So what we read here is the password
 				
-				byte[] ldappass = ldaputils.getUserPassword(this.uid,pass);
+				byte[] ldappass = ldaputils.getUserPassword(this.uid,pass); //Get the user password
 				
-				if(MessageDigestUtils.checkDigest(bytes, ldappass)) {
-					//try {
-						//System.out.println(uid);
-						X509Certificate cert = ldaputils.getCertificate(this.uid);
-						//System.out.println(cert);
-						X509CRLHolder holder = ldaputils.getCRLFromURL(CertificateUtils.crlURLFromCert(cert));
-						System.out.println(holder);
-						BigInteger ser = cert.getSerialNumber();
+				if(MessageDigestUtils.checkDigest(bytes, ldappass)) { // If equal to the one received continue
+
+						X509Certificate cert = ldaputils.getCertificate(this.uid); //Get the user certificate
+						X509CRLHolder holder = ldaputils.getCRLFromURL(CertificateUtils.crlURLFromCert(cert)); // Get the CRL of his issuer
+						
+						BigInteger ser = cert.getSerialNumber(); // Get the serial number of the certificate
+						
+						// Call the method of the CryptoAPI to update an existing CRL
 						X509CRLHolder newcrl = CRLManager.updateCRL(holder, this.caSignerCert, this.caSignerKey, ser, CRLReason.privilegeWithdrawn);
+						
+						//Send it back on the LDAP
 						ldaputils.setCRL(newcrl, Config.get("USERS_BASE_DN", ""),pass);
+						
+						//Delete the user certificate on the LDAP to prevent another user to download it whereas it is revoked.
 						ldaputils.deleteUserCertificate("uid="+this.uid+","+Config.get("USERS_BASE_DN",""), pass);
 						this.setBytesToWrite("Done".getBytes());
-					//}
-					//catch(Exception e) {
-					//	e.printStackTrace();
-					//	this.setBytesToWrite("not done".getBytes());
-					//}
 				}
 				else {
 					this.setBytesToWrite("Fail password wrong".getBytes());
@@ -121,14 +99,14 @@ public class RevocationRequestThread extends Thread implements Runnable, Communi
 	}
 	
 	public static byte[] read(InputStream in) throws IOException {
-		byte[] res = new byte[4096]; //Créer un tableau très grand. (Je m'attends a tout recevoir d'un coup j'ai pas envie de me faire chier)
-		int read = in.read(res); //Je lis
-		if (read == -1) { //si on a rien lu c'est que le serveur a eu un problème
+		byte[] res = new byte[4096];
+		int read = in.read(res);
+		if (read == -1) {
 				throw new IOException();
 		}
 		
-		byte[] res_fitted = new byte[read]; //je déclare un tableau de la taille juste
-		for (int i=0; i < read; i++) { //je recopie le byte dedans
+		byte[] res_fitted = new byte[read];
+		for (int i=0; i < read; i++) {
 			res_fitted[i] = res[i];
 		}
 		return res_fitted;

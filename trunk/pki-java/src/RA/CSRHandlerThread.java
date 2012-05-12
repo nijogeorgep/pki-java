@@ -16,75 +16,64 @@ import Ldap.ldaputils;
 import Utils.Config;
 
 public class CSRHandlerThread extends Thread implements Runnable, CommunicationHandler {
+	/*
+	 * Class the extends Thread and implement Runnable,CommunicationHandler. It will independently connect to the CA, send the CSR
+	 * receive the certificate, and forward it to the RaServer class to will send it to the user
+	 */
 	byte[] bytesread = null;
 	byte[] bytestowrite = null;
 	PKCS10CertificationRequest request;
 	String pass;
-	/* ######## README #########
-	 * (Lire d'abord RevocationRequest)
-	 * Le fonctionnement est similaire a RevocationRequest sauf qu'il ne fait pas la même chose:
-	 * Il lance aussi un thread autonome qui fait:
-	 * 			- Vérifie l'identité de la personne qui fait la demande (normalement sa se fait avec des NSS etc) mais la on va juste supposer que la personne existe dans le LDAP.
-	 * 			- Si la personne n'existe pas le demande de certificat est refusé et le thread s'arrete là (passe son status à refusé)
-	 * 			- Si la personne existe on considère la demande de certificat comme valide et on se connecte au RA pour la faire signer.
-	 * 			- On crée le certificat a partir de la CSR signé que le CA nous a renvoyé
-	 * 			- On se connecte au repository pour envoyer le certificat
-	 * 			- On passe le status a OK
-	 *########################*/
-    //the thread is created into the same class as EchoServer as a private class because I had considered it as a built-in subroutine of the server
 	
 	public CSRHandlerThread(PKCS10CertificationRequest req, String pass) {
 		this.request = req;
 		this.pass = pass;
 	}
     	
-    public void run()  { //method that implement Runnable
+    public void run()  {
     	
-    	this.setBytesToWrite("OK first".getBytes());
+    	this.setBytesToWrite("OK first".getBytes()); // If we are here it means that we have received a well formed CSR so we acknowledge it and wait for the password
     	
     	for (;;) {
-			if(hasSomethingToRead()) {
-				byte[] bytes = this.getRead(); //Ici pour un CSR ce qu'on récupère c'est le password
+			if(hasSomethingToRead()) { //Wait for the password
+				byte[] bytes = this.getRead(); //Read the password
 				
-				String uid = ldaputils.getUIDFromSubject(request.getSubject().toString());// on récupère l'uid a partir de la csr
+				String uid = ldaputils.getUIDFromSubject(request.getSubject().toString());//Contact LDAP to get the uid of the user using the subject of the CSR
 				if(uid == null) {
 					this.setBytesToWrite("Fail user not found".getBytes());
 					break;
 				}
 				
-				byte[] ldappass = ldaputils.getUserPassword(uid,pass);
+				byte[] ldappass = ldaputils.getUserPassword(uid,pass); //Get the password of the given user
 				
-				if(MessageDigestUtils.checkDigest(bytes, ldappass)) {
-					System.out.println("Password OK");
-					//this.setBytesToWrite("OK".getBytes());
-					
-					//---------- Connection au CA -------------
+				if(MessageDigestUtils.checkDigest(bytes, ldappass)) { // Check if the password sent is the same than the one on the LDAP
+					System.out.println("User pass OK");
+				
+					//---------- CA connection -------------
 					Socket s;
 					try {
 						int port = new Integer(Config.get("PORT_CA","6666"));
-						s = new Socket( Config.get("IP_CA","localhost"), new Integer( port ));
-						//s = new Socket("localhost", 5555);
-						DataOutputStream out = new DataOutputStream(s.getOutputStream()); //A noter que j'utilise des DataOutputStream et pas des ObjectOutputStream
+						s = new Socket( Config.get("IP_CA","localhost"), new Integer( port )); // Connect to the CA
+
+						DataOutputStream out = new DataOutputStream(s.getOutputStream());
 						DataInputStream in = new DataInputStream(s.getInputStream());
 						
-						byte[] bytesrec = this.request.getEncoded(); //récupère le tableau de bytes de la requete
+						byte[] bytesrec = this.request.getEncoded(); //Get the CSR as byte[]
 						
-						out.write(bytesrec); //on envoie la requete
+						out.write(bytesrec); //send it to the CA
 						
 						byte[] reply  = read(in);
 						
 						System.out.println(reply);
 						
-						this.setBytesToWrite(reply);
+						this.setBytesToWrite(reply); // Forward the reply without checking anything
 						s.close();
 						ldaputils.setCertificateUser(CertificateUtils.certificateFromByteArray(reply), uid, Config.get("USERS_BASE_DN",""),pass);
 						
 					} catch (UnknownHostException e) {
 						this.setBytesToWrite("Unknown host CA".getBytes());
-						//e.printStackTrace();
 					} catch (IOException e) {
 						this.setBytesToWrite("IOError CA connection".getBytes());
-						//e.printStackTrace();
 					}
 					//----------------------------------------------
 				}
@@ -129,14 +118,14 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 	}
 	
 	public static byte[] read(InputStream in) throws IOException {
-		byte[] res = new byte[4096]; //Créer un tableau très grand. (Je m'attends a tout recevoir d'un coup j'ai pas envie de me faire chier)
-		int read = in.read(res); //Je lis
-		if (read == -1) { //si on a rien lu c'est que le serveur a eu un problème
+		byte[] res = new byte[4096];
+		int read = in.read(res);
+		if (read == -1) {
 				throw new IOException();
 		}
 		
-		byte[] res_fitted = new byte[read]; //je déclare un tableau de la taille juste
-		for (int i=0; i < read; i++) { //je recopie le byte dedans
+		byte[] res_fitted = new byte[read];
+		for (int i=0; i < read; i++) {
 			res_fitted[i] = res[i];
 		}
 		return res_fitted;

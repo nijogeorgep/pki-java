@@ -1,20 +1,14 @@
 package CryptoAPI;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.security.KeyStore;
-import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
-import java.security.Security;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Date;
-
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers;
-import org.bouncycastle.asn1.ocsp.Request;
 import org.bouncycastle.asn1.x509.CRLReason;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
@@ -32,7 +26,6 @@ import org.bouncycastle.cert.ocsp.OCSPRespBuilder;
 import org.bouncycastle.cert.ocsp.Req;
 import org.bouncycastle.cert.ocsp.RevokedStatus;
 import org.bouncycastle.cert.ocsp.SingleResp;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.ocsp.OCSPException;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -40,11 +33,12 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 
-import Ldap.ldaputils;
-
 
 public class OCSPManager {
 	public static OCSPReq generateOCSPRequest(X509Certificate issuerCert, BigInteger serialNumber) throws OCSPException, OCSPException, CertificateEncodingException, OperatorCreationException, org.bouncycastle.cert.ocsp.OCSPException, IOException  {
+		/*
+		 * Generate an OCSP Request for the given serial.
+		 */
 		
         // Generate the id for the certificate we are looking for
         CertificateID id = new CertificateID(new JcaDigestCalculatorProviderBuilder().setProvider("BC").build().get(CertificateID.HASH_SHA1), new X509CertificateHolder(issuerCert.getEncoded()), serialNumber);
@@ -52,18 +46,21 @@ public class OCSPManager {
         // basic request generation with nonce
         OCSPReqBuilder ocspGen = new OCSPReqBuilder();
         
-        ocspGen.addRequest(id); //Faudrait aussi donner la possibilité d'ajouter plusieurs serials
+        ocspGen.addRequest(id); //Add the serial to the request (could have made the possiblity to add multiples ones)
         
-        // create details for nonce extension
+        //create a nonce to avoid replay attack
         BigInteger nonce = BigInteger.valueOf(System.currentTimeMillis());
 
         Extension ext = new Extension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce, true, new DEROctetString(nonce.toByteArray()));
         ocspGen.setRequestExtensions(new Extensions(new Extension[] { ext }));
         
-        return ocspGen.build();//A noter que ici la requet n'est pas signée !
+        return ocspGen.build();//Notate thats the request is not signed
 	}
 
 	public static void listRequest(OCSPReq req) {
+		/*
+		 * List all the serials requested in an OCSPReq
+		 */
         Req[] requests = req.getRequestList();
 
         for (int i = 0; i != requests.length; i++) {
@@ -73,43 +70,39 @@ public class OCSPManager {
         }
 	}
 
-	   public static OCSPResp generateOCSPResponse(OCSPReq request, X509Certificate caCert, PrivateKey privKey) {
+	   public static OCSPResp generateOCSPResponse(OCSPReq request, X509Certificate caCert, PrivateKey privKey, X509CRLHolder crl) {
 		      
-	          //CertificateID revokedID = new CertificateID(new JcaDigestCalculatorProviderBuilder().setProvider("BC").build().get(CertificateID.HASH_SHA1), new X509CertificateHolder(caCert.getEncoded()), revokedSerial);
-		   		int response = OCSPRespBuilder.INTERNAL_ERROR;
+		   		int response = OCSPRespBuilder.INTERNAL_ERROR; // by default response as ERROR
 		   
 		      SubjectPublicKeyInfo keyinfo = SubjectPublicKeyInfo.getInstance(caCert.getPublicKey().getEncoded());
 		      BasicOCSPRespBuilder respGen;
 		      try {
-		    	  respGen = new BasicOCSPRespBuilder(keyinfo, new JcaDigestCalculatorProviderBuilder().setProvider("BC").build().get(CertificateID.HASH_SHA1));
-		      }catch(Exception e) { e.printStackTrace(); return null; }
+		    	  respGen = new BasicOCSPRespBuilder(keyinfo, new JcaDigestCalculatorProviderBuilder().setProvider("BC").build().get(CertificateID.HASH_SHA1)); //Create builder
+		      }catch(Exception e) { return null; }
 		    	  
 		     Extension ext = request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce);
 		     if (ext != null) {
-		    	 respGen.setResponseExtensions(new Extensions(new Extension[] { ext }));
+		    	 respGen.setResponseExtensions(new Extensions(new Extension[] { ext })); // Put the nonce back in the response
 		     }	      
 		     Req[] requests = request.getRequestList();
-
-		      for (int i = 0; i != requests.length; i++) { // Pour toute les requêtes contenues dans la requete
-		    	  	Req req = requests[i];
+	
+		      for (int i = 0; i != requests.length; i++) { //For all the Req in the Request
 		    	  	
 		           CertificateID certID = requests[i].getCertID();
 		           BigInteger serial = certID.getSerialNumber();
-
-		           X509CRLHolder crl = ldaputils.getCRL("ou=rootCA,dc=pkirepository,dc=org", "intermediatePeopleCA"); /// A CHANGER !!!
 		           
-		           if (CRLManager.serialNotInCRL(crl, serial)) {
-		        	   respGen.addResponse(certID, CertificateStatus.GOOD);
+		           if (CRLManager.serialNotInCRL(crl, serial)) { // If the certificate is not in the CRL
+		        	   respGen.addResponse(certID, CertificateStatus.GOOD); // Set the status to good
 		           }
 		           else
-		        	   respGen.addResponse(certID,  new RevokedStatus(new Date(), CRLReason.privilegeWithdrawn));
+		        	   respGen.addResponse(certID,  new RevokedStatus(new Date(), CRLReason.privilegeWithdrawn)); //Set status privilegeWithdrawn for the given ID
 		      }
 		      			      
 			  try { 
 				  ContentSigner contentSigner =  new JcaContentSignerBuilder("SHA1withRSA").setProvider("BC").build(privKey);
 				  BasicOCSPResp basicResp = respGen.build(contentSigner, new X509CertificateHolder[] { new X509CertificateHolder(caCert.getEncoded()) }, new Date());
-				  response = OCSPRespBuilder.SUCCESSFUL;
-				  return new OCSPRespBuilder().build(response, basicResp);
+				  response = OCSPRespBuilder.SUCCESSFUL; //Set response as successfull
+				  return new OCSPRespBuilder().build(response, basicResp); // build the reponse
 			  }catch (Exception e) {
 				  return null;
 			  }
@@ -118,20 +111,23 @@ public class OCSPManager {
 	   
 	   
 	   public static String analyseResponse(OCSPResp response, OCSPReq request, X509Certificate caCert) throws Exception {
+		   /*
+		    * Analyse the response send regarding the request the certificate that signed the response etc ..
+		    */
 		   BasicOCSPResp basicResponse = (BasicOCSPResp)response.getResponseObject(); // retrieve the Basic Resp of the Response
 
 		   // verify the response
-		   if (basicResponse.isSignatureValid(new JcaContentVerifierProviderBuilder().setProvider("BC").build(caCert.getPublicKey()))) { //On vérifie la signature
+		   if (basicResponse.isSignatureValid(new JcaContentVerifierProviderBuilder().setProvider("BC").build(caCert.getPublicKey()))) {
 		       SingleResp[] responses = basicResponse.getResponses();
 
-		       byte[] reqNonce = request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce).getExtnId().getEncoded();//tensionValue(OCSPObjectIdentifiers.id_pkix_ocsp_nonce.getId());
+		       byte[] reqNonce = request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce).getExtnId().getEncoded();
 		       byte[] respNonce = basicResponse.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce).getExtnId().getEncoded();
 		       
 		       // validate the nonce if it is present
-		       if (reqNonce == null || Arrays.equals(reqNonce, respNonce))  { //Si les deux nonces sont identiques
+		       if (reqNonce == null || Arrays.equals(reqNonce, respNonce))  { //If both nonce are equals
 		    	   
 		           String message = "";
-		           for (int i = 0; i != responses.length; i++) {
+		           for (int i = 0; i != responses.length;) {
 		                message += " certificate number " + responses[i].getCertID().getSerialNumber();
 		                if (responses[i].getCertStatus() == CertificateStatus.GOOD)
 		                    return message + " status: good";
@@ -147,37 +143,4 @@ public class OCSPManager {
 		    return "response failed to verify OCSP signature";
 	} 
 	   
-	   
-    public static void main(String[] args) throws Exception {
-		Security.addProvider(new BouncyCastleProvider());
-		
-		KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-		ks.load(new FileInputStream("src/Playground/test_keystore.ks"), "passwd".toCharArray());
-
-		PrivateKey privInt = (PrivateKey) ks.getKey("CA_Intermediaire_Private", "monpassInt".toCharArray());
-		X509Certificate pubInt = (X509Certificate) ks.getCertificate("CA_Intermediaire_Certificate");
-		
-		PrivateKey privPers1 = (PrivateKey) ks.getKey("personne1_private", "monpassP1".toCharArray());
-		X509Certificate pubPers1 = (X509Certificate) ks.getCertificate("personne1_certificat");
-
-        OCSPReq request = generateOCSPRequest(pubInt, pubPers1.getSerialNumber());
-
-        //System.out.println(request.isSigned());
-        //System.exit(0);
-        
-		OCSPResp response = generateOCSPResponse(request, pubInt, privInt); //meme certificat donc il va dire révoqué !
-		System.out.println(response.getEncoded());
-		System.out.println(analyseResponse(response, request, pubInt));
-
-		/*
-			 Avant de considérer une réponse signée comme valide, les clients OCSP sont tenus de vérifier que: 
-			Le certificat identifié dans la réponse correspond à celui identifié dans la requête; 
-			la signature du message est valide; 
-			l'identité du signataire de la réponse correspond à celle du destinataire attendu de la requête; 
-			le signataire est autorisé à signer la requête; 
-			la date pour laquelle le statut du certificat est considéré comme connu est suffisamment récente; 
-			lorsque disponible, la date à ou avant laquelle une nouvelle information sera disponible pour le statut du certificat (nextUpdate) est ultérieure à la date courante. 
-		 */
-        
-    }
 }

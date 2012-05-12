@@ -1,7 +1,6 @@
 package Clients;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.Security;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import CryptoAPI.MessageDigestUtils;
@@ -18,7 +17,7 @@ public class ConnectionRevocation extends Connection {
 			
 			String identite = ClientUtils.readIdentity();
 			
-			String uid = ldaputils.getUIDFromSubject("CN="+identite);
+			String uid = ldaputils.getUIDFromSubject("CN="+identite); // Get our uid from the Identity read at the keyboard
 			
 			System.out.print("Please enter your password: ");
 			String pwd = ClientUtils.saisieString();
@@ -26,13 +25,13 @@ public class ConnectionRevocation extends Connection {
 			
 			
 			try {
-				  out.write(uid.getBytes()); //on envoie la requete
+				  out.write(uid.getBytes()); //Send the uid
 				  
-				  String reply  = new String(this.read());
+				  new String(this.read()); // Read the acknowledgement even if we don't care if it
 				  
-				  out.write(MessageDigestUtils.digest(pwd));
+				  out.write(MessageDigestUtils.digest(pwd)); // Write the digest of our password to prove our identity
 				  
-				  String res  = new String(this.read());
+				  String res  = new String(this.read()); // Read the reply
 				  if (res.equals("Done"))
 					  this.finishedOK = true;
 				  else {

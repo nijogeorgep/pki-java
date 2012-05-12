@@ -1,7 +1,7 @@
 package Repository;
+
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -9,17 +9,13 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.ListIterator;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
+import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.ocsp.OCSPReq;
 import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -34,11 +30,10 @@ public class RepositoryServer {
 	ByteBuffer masterBuffer;		//buffer used to store temporarily bytes read in sockets
 	Selector sel;
 	SelectionKey keyserver;			//SelectionKey of the server
-	//------ Ajout --------
 	X509Certificate caSignerCert;
 	PrivateKey caSignerKey;
 	KeyStore ks;
-	//----------------------
+	X509CRLHolder crl;
 	
     public static void main(String[] args) {
     	Security.addProvider(new BouncyCastleProvider());
@@ -54,14 +49,14 @@ public class RepositoryServer {
     
 	public RepositoryServer() throws IOException, InterruptedException {
 		this.s = ServerSocketChannel.open();
-		this.s.socket().bind(new InetSocketAddress((int) new Integer(Config.get("PORT_REPOSITORY", "5555"))));		//arbitrarily set to 5555
+		this.s.socket().bind(new InetSocketAddress((int) new Integer(Config.get("PORT_REPOSITORY", "5555"))));
 		this.s.configureBlocking(false);
 		this.masterBuffer = ByteBuffer.allocate(4096);
 		this.sel = Selector.open();
-		this.keyserver= s.register(this.sel, SelectionKey.OP_ACCEPT);	//register the server selectionkey in accept
+		this.keyserver= s.register(this.sel, SelectionKey.OP_ACCEPT);
 		//----- Added -----
 		try {
-			this.ks = KeyStore.getInstance(KeyStore.getDefaultType()); //Je load tout les certificats en mémoire pour les avoir directement sous la main
+			this.ks = KeyStore.getInstance(KeyStore.getDefaultType());
 		      String path = Config.get("KS_PATH_REPOSITORY","test_keystore.ks");
 		      String passwd = Config.get("KS_PASS_REPOSITORY","passwd");
 		      this.ks.load(new FileInputStream(path), passwd.toCharArray());
@@ -72,25 +67,24 @@ public class RepositoryServer {
 		
 	}
 	
-	//main method in wich the main thread will be jailed.
 	public void run() throws IOException, InterruptedException
 	{
 		for(;;) {
-			this.sel.select(); // wait for an event
+			this.sel.select();
 			
-			Set keys = this.sel.selectedKeys();
-			Iterator i = keys.iterator();
+			Set<SelectionKey> keys = this.sel.selectedKeys();
+			Iterator<SelectionKey> i = keys.iterator();
 			while( i.hasNext())
 			{
 				SelectionKey sk = (SelectionKey) i.next();
 				i.remove();
 				
-				if(sk.isValid()) {  //Get in only if the key is valid, which is not always the case
+				if(sk.isValid()) {
 				
 					if(sk == this.keyserver && sk.isAcceptable()) {
 						SocketChannel client = ((ServerSocketChannel)sk.channel()).accept();
-						client.configureBlocking(false);										//configure client in non-blocking
-						client.register(this.sel, SelectionKey.OP_READ); //register the client in READ with the given attachment (no need to do key.attach)
+						client.configureBlocking(false);
+						client.register(this.sel, SelectionKey.OP_READ);
 				}
 					
 					if ( sk.isReadable()) {
@@ -101,31 +95,22 @@ public class RepositoryServer {
                             int byteread = client.read(this.masterBuffer);
                             if (byteread == -1) {
                                 client.close();
-                                continue; // avoid an CancelledKeyexception (because if we close client the key (sk) is not valid anymore and if(sk.isWritable()) will raise exception)
+                                continue;
                             }
                             else {
                             	byte[] received = readBuff(byteread);
-                            	//try {
-	                            	OCSPReq request  = new OCSPReq(received); //Je reconstruit cash la request OCSP a partir de ce que j'ai lu
-	                            	
-	                            	System.out.println(request.getEncoded()); //pour le debug
-	                            	
-	                            	OCSPResp response = OCSPManager.generateOCSPResponse(request, this.caSignerCert, this.caSignerKey); //Je génère la réponse (a noter ça aurait pu être bien de le mettre en sk.writable)
-	                            	
-	                            	System.out.println(response.getEncoded()); //pour le debug
-	                            	
-	                            	sk.attach(response.getEncoded()); //met le byte[] en attachment pour qu'il soit renvoyé quand il sera passé en write
-	                            /*	}
+                            	try {
+                            	OCSPReq request  = new OCSPReq(received); //Recreate the OCSPReq from the byte[] read
+                            	this.crl = ldaputils.getCRL("ou=rootCA,dc=pkirepository,dc=org", "intermediatePeopleCA");
+                            	OCSPResp response = OCSPManager.generateOCSPResponse(request, this.caSignerCert, this.caSignerKey, crl); //Generate the response
+                            	
+                            	sk.attach(response.getEncoded()); //put the reponse as byte[]
+
+                                sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE);// Put the key in write
+                            	}
                             	catch(Exception e) {
-                            		BigInteger b = new BigInteger(received);
-                            		String uid = b.toString();//new String(b.toByteArray());
-                            		X509Certificate certB = ldaputils.getCertificate(uid);
-                            		byte[] datatoresend = NeedhamSchroederPublicKey.cipherCertBWithPrivateKeyS(certB, this.caSignerKey);
-                            		System.out.println(datatoresend);
-                            		System.out.println("BigIn rec: "+b);
-                            		sk.attach(datatoresend);
-                            	}*/
-                                sk.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE); //on le passe en write
+                            		sk.attach("Invalid request".getBytes());
+                            	}
                             }						
                         } 
                         catch (IOException e) {
@@ -136,11 +121,11 @@ public class RepositoryServer {
 					}
 					
 					if (sk.isWritable()) {
-						byte[] attachment = (byte[]) sk.attachment(); //On récupère l'attachment
+						byte[] attachment = (byte[]) sk.attachment();
 						SocketChannel client =  (SocketChannel) sk.channel(); 
-						client.write(ByteBuffer.wrap(attachment)); //On écrit ce que l'on a récupéré
+						client.write(ByteBuffer.wrap(attachment));
 						
-						sk.interestOps(SelectionKey.OP_READ); //On repasse la clé en read
+						sk.interestOps(SelectionKey.OP_READ);
 					}
 				}
 				
@@ -157,14 +142,5 @@ public class RepositoryServer {
 		}
 		return myarray;
 	}
-      
-    private void writeSocket(SelectionKey k, ByteBuffer b) {
-    	SocketChannel client =  (SocketChannel) k.channel(); // gather the client socket
-    	try {
-			client.write(b);								//write the message to the client
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-    }
-    
+
 }

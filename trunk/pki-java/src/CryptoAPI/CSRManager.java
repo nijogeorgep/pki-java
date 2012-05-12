@@ -21,13 +21,10 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.AuthorityInformationAccess;
 import org.bouncycastle.asn1.x509.BasicConstraints;
-import org.bouncycastle.asn1.x509.CRLDistPoint;
 import org.bouncycastle.asn1.x509.DistributionPoint;
 import org.bouncycastle.asn1.x509.DistributionPointName;
-import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
-import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -50,6 +47,9 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 public class CSRManager {
 	
 	public static PKCS10CertificationRequest generate_csr(String name, KeyPair kp) throws NoSuchAlgorithmException, OperatorCreationException  {
+		/*
+		 * Create a PKCS10CertificationRequest from a name and a KeyPair
+		 */
 		Security.addProvider(new BouncyCastleProvider());
         KeyPair keys = kp;
         
@@ -62,7 +62,10 @@ public class CSRManager {
 	
 	
 	
-	public static X509Certificate retrieveCertificateFromCSR(PKCS10CertificationRequest inputCSR, PrivateKey caPrivate, X509Certificate caPublic, BigInteger serial) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, SignatureException, IOException, OperatorCreationException, CertificateException {   
+	public static X509Certificate retrieveCertificateFromCSR(PKCS10CertificationRequest inputCSR, PrivateKey caPrivate, X509Certificate caPublic, BigInteger serial, String crlurl, String ocspurl) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, SignatureException, IOException, OperatorCreationException, CertificateException {   
+		/*
+		 * Sign the given OKCS10CertificationRequest with the given private key
+		 */
 		Security.addProvider(new BouncyCastleProvider());
 		/* EXTENSION:																	CRITICAL
 		 * basicConstraints(false)													true
@@ -82,7 +85,7 @@ public class CSRManager {
 
 		Calendar cal = Calendar.getInstance();
 		Date	notbefore = cal.getTime();
-		cal.add(Calendar.YEAR, 10);
+		cal.add(Calendar.YEAR, 2); // Define the validity of 2 years
 		Date notafter = cal.getTime();
 	    
 	    X509v3CertificateBuilder myCertificateGenerator = new X509v3CertificateBuilder(new X500Name(caPublic.getSubjectDN().getName()), serial, notbefore, notafter, inputCSR.getSubject(),	keyInfo);
@@ -91,47 +94,32 @@ public class CSRManager {
 	    
 	    
 		//------------------------- Extensions ------------------------
-	    myCertificateGenerator.addExtension(X509Extension.basicConstraints, true, new BasicConstraints(false)); //doit aussi être critique
+	    myCertificateGenerator.addExtension(X509Extension.basicConstraints, true, new BasicConstraints(false));
 		
 	    myCertificateGenerator.addExtension(X509Extension.authorityKeyIdentifier, false, new JcaX509ExtensionUtils().createAuthorityKeyIdentifier(caPublic));
 		
 		SubjectKeyIdentifier subjectKeyIdentifier = new JcaX509ExtensionUtils().createSubjectKeyIdentifier(keyInfo);
 		myCertificateGenerator.addExtension(X509Extension.subjectKeyIdentifier, false, subjectKeyIdentifier);
 		
-		// Pour le moment on autorise au CA que la signature de certificat et la signature de CRL (a priori il ne fera rien d'autre)
 		KeyUsage keyUsage = new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation |KeyUsage.keyEncipherment|KeyUsage.dataEncipherment|KeyUsage.digitalSignature);
-		myCertificateGenerator.addExtension(X509Extension.keyUsage, true, keyUsage); //KeyUsage doit être critique
+		myCertificateGenerator.addExtension(X509Extension.keyUsage, true, keyUsage);
 		
-		String url = "ldap://87.98.166.65:389/ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org";
-		
-		GeneralName gn = new GeneralName(GeneralName.uniformResourceIdentifier, new DERIA5String(url));
-		GeneralNames gns = new GeneralNames(gn);
-		DistributionPointName dpn = new DistributionPointName(gns);
-		DistributionPoint distp = new DistributionPoint(dpn, null, null);
-		DERSequence seq = new DERSequence(distp);
-		myCertificateGenerator.addExtension(X509Extension.cRLDistributionPoints, false, seq);
+		if (crlurl != null)  {
+			GeneralName gn = new GeneralName(GeneralName.uniformResourceIdentifier, new DERIA5String(crlurl));
+			GeneralNames gns = new GeneralNames(gn);
+			DistributionPointName dpn = new DistributionPointName(gns);
+			DistributionPoint distp = new DistributionPoint(dpn, null, null);
+			DERSequence seq = new DERSequence(distp);
+			myCertificateGenerator.addExtension(X509Extension.cRLDistributionPoints, false, seq);
+		}
+		if (ocspurl != null) {
+			GeneralName gn = new GeneralName(GeneralName.uniformResourceIdentifier, new DERIA5String(ocspurl));
+			AuthorityInformationAccess acc = new AuthorityInformationAccess(X509Extension.authorityInfoAccess, gn);
+			myCertificateGenerator.addExtension(X509Extension.authorityInfoAccess, false, acc);
+		}
 
-		url = "http://87.98.166.65:80";
-		gn = new GeneralName(GeneralName.uniformResourceIdentifier, new DERIA5String(url));
-		AuthorityInformationAccess acc = new AuthorityInformationAccess(X509Extension.authorityInfoAccess, gn);
-		myCertificateGenerator.addExtension(X509Extension.authorityInfoAccess, false, acc);
-		//----------------------------------------------------------------
-
-	    
-	    //myCertificateGenerator.addExtension(X509Extension.subjectKeyIdentifier, false, inputCSR.getSubjectPublicKeyInfo());
-	    	    
-	    
 	    X509CertificateHolder holder = myCertificateGenerator.build(sigGen);
-	    /*
-	    org.bouncycastle.asn1.x509.Certificate certificateStructure = holder.toASN1Structure(); 
 
-	    java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509", "BC");
-
-	    // Read Certificate
-	    InputStream is1 = new ByteArrayInputStream(certificateStructure.getEncoded());
-	    X509Certificate theCert = (X509Certificate) cf.generateCertificate(is1);
-	    is1.close();
-	    return theCert;*/
 	    return (X509Certificate) java.security.cert.CertificateFactory.getInstance("X.509","BC").generateCertificate(new ByteArrayInputStream(holder.getEncoded()));
 	}
 	

@@ -9,11 +9,11 @@ USERS_BASE_DN=ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org
 
 #Client Config
 
-CLIENT_CERT_ALIAS=bob_certificat
-CLIENT_KEY_ALIAS=bob_private
+#CLIENT_CERT_ALIAS=bob_certificat
+#CLIENT_KEY_ALIAS=bob_private
 
-#CLIENT_CERT_ALIAS=alice_certificat
-#CLIENT_KEY_ALIAS=alice_private
+CLIENT_CERT_ALIAS=alice_certificat
+CLIENT_KEY_ALIAS=alice_private
 
 CLIENT_KEY_PASS=monpassP1
 KS_PATH_USER=keystores/user_keystore.ks

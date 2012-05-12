@@ -1,28 +1,18 @@
 package CryptoAPI;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
-import java.security.KeyPair;
 import java.security.cert.CertPathValidatorException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateEncodingException;
 import java.security.cert.PKIXCertPathChecker;
 import java.security.cert.X509Certificate;
-import java.util.*;
-
-import org.bouncycastle.cert.X509CRLHolder;
+import java.util.Collection;
+import java.util.Set;
 import org.bouncycastle.cert.ocsp.OCSPReq;
 import org.bouncycastle.cert.ocsp.OCSPResp;
-import org.bouncycastle.ocsp.OCSPException;
-import org.bouncycastle.operator.OperatorCreationException;
 
-import Ldap.ldaputils;
-import Utils.Config;
 
 public class PathCheckerOCSP  extends PKIXCertPathChecker {
     private X509Certificate caCert;
@@ -39,33 +29,37 @@ public class PathCheckerOCSP  extends PKIXCertPathChecker {
         return true;//The isForwardCheckingSupported() should return true if the checker supports forward direction processing. All checkers must support reverse processing. 
     }
 
-    public Set getSupportedExtensions() {
+    public Set<String> getSupportedExtensions() {
         return null;//objects representing the OIDs of the X.509 extensions that the checker implementation can handle. If the checker does not handle any specific extensions, getSupportedExtensions() should return null. 
     }
 
-    public void check(Certificate cert, Collection extensions) throws CertPathValidatorException {
+    public void check(Certificate cert, Collection<String> extensions) throws CertPathValidatorException {
     	
-        X509Certificate x509Cert = (X509Certificate)cert;
-        BigInteger serial = x509Cert.getSerialNumber();
+        X509Certificate x509Cert = (X509Certificate)cert; // This is the certificate we want to check
+        BigInteger serial = x509Cert.getSerialNumber(); // Get the serial
         String mess = "";
         try {
-			OCSPReq ocspreq = OCSPManager.generateOCSPRequest(caCert, serial);
-			
-			int port = (int) new Integer(Config.get("PORT_REPOSITORY", "5555"));
-			String ip = Config.get("IP_REPOSITORY", "localhost");
-			Socket s = new Socket(ip, port);
+			OCSPReq ocspreq = OCSPManager.generateOCSPRequest(caCert, serial); // Create an OCSP Request
+			String ocspresponder = CertificateUtils.ocspURLFromCert((X509Certificate) cert); // Get the address of the OCSP Responder of the cert
+			int port = new Integer(ocspresponder.split(":")[1]);
+			String ip = ocspresponder.split(":")[0];
+			Socket s = new Socket(ip, port); // Connect to the responder
 			InputStream in = s.getInputStream();
 			OutputStream out = s.getOutputStream();
 			
-			out.write(ocspreq.getEncoded());
+			out.write(ocspreq.getEncoded()); // Send the OCSP Request
 			
-			byte[] resp = read(in);
+			byte[] resp = read(in); // Read the reponse
 			
 			s.close();
-
-			OCSPResp response = new OCSPResp(resp);
+			try {
+				OCSPResp response = new OCSPResp(resp); // Parse it to OCSPResp
+				mess = OCSPManager.analyseResponse(response, ocspreq, caCert); // Analyse the response
+			}
+			catch(Exception e) {
+				throw new CertPathValidatorException(new String(resp));
+			}
 			
-			mess = OCSPManager.analyseResponse(response, ocspreq, caCert);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -78,14 +72,14 @@ public class PathCheckerOCSP  extends PKIXCertPathChecker {
     
 	public byte[] read(InputStream in) {
 		try {
-			byte[] res = new byte[4096]; //Créer un tableau très grand. (Je m'attends a tout recevoir d'un coup j'ai pas envie de me faire chier)
-			int read = in.read(res); //Je lis
-			if (read == -1) { //si on a rien lu c'est que le serveur a eu un problème
+			byte[] res = new byte[4096];
+			int read = in.read(res);
+			if (read == -1) {
 					System.out.println("error !!");
 			}
 			
-			byte[] res_fitted = new byte[read]; //je déclare un tableau de la taille juste
-			for (int i=0; i < read; i++) { //je recopie le byte dedans
+			byte[] res_fitted = new byte[read];
+			for (int i=0; i < read; i++) {
 				res_fitted[i] = res[i];
 			}
 			return res_fitted;
