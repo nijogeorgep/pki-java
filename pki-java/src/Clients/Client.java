@@ -29,6 +29,7 @@ public class Client {
 	boolean isServer = false;
 	ServerSocket server_sock;
 	Socket s;
+	Socket s_cli;
 	DataOutputStream out;
 	DataInputStream in;
 	KeyStore ks;
@@ -120,7 +121,12 @@ public class Client {
 				//---------------------- CSR REQUEST --------------------------
 				if(this.myCert ==null && this.myKey==null) {
 					ConnectionCSR cli = new ConnectionCSR(Config.get("IP_RA", "localhost"), new Integer(Config.get("PORT_RA","5555")));
-					cli.connect();
+					try {
+						cli.connect();
+					}catch(Exception e) {
+						System.out.println("Cannot connect to RA "+Config.get("IP_RA", "localhost")+":"+Config.get("PORT_RA","5555")+e.getMessage());
+						break;
+					}
 					cli.run();
 					if(cli.finishedWell()) {
 						System.out.println("OK");
@@ -141,7 +147,12 @@ public class Client {
 				//On appelle la méthode qui permet de révoquer un certificat
 				if(this.myCert != null) {
 					ConnectionRevocation cli = new ConnectionRevocation(Config.get("IP_RA", "localhost"), new Integer(Config.get("PORT_RA","5555")));
-					cli.connect();
+					try {
+						cli.connect();
+					}catch(Exception e) {
+						System.out.println("Cannot connect to RA "+Config.get("IP_RA", "localhost")+":"+Config.get("PORT_RA","5555")+e.getMessage());
+						break;
+					}
 					cli.run();
 					if(cli.finishedWell()) {
 						System.out.println("OK");
@@ -182,15 +193,19 @@ public class Client {
 				Integer port = new Integer(Config.get("PORT_LISTEN", "7000"));
 
 				needhamcli = new NeedhamShroederClient(ip, port, this.s,this.isServer,this.myCert,this.myKey,clientcert);
-				//cli.bind();
-				needhamcli .connect();
-				needhamcli .run();
-				//this.in = this.needhamcli .getInputStream();
-				//this.out = this.needhamcli .getOutputStream();
+				try {
+					needhamcli.connect();
+				}catch(Exception e) {
+					System.out.println("Cannot connect to Client "+Config.get("IP_RA", "localhost")+":"+Config.get("PORT_RA","5555")+e.getMessage());
+					break;
+				}
+				needhamcli.run();
 				if(needhamcli .finishedWell())
 					System.out.println("Needham Shroeder exchange OK");
-				else
+				else {
 					System.out.println(needhamcli .getErrorMessage());
+					break;
+				}
 				
 				sessionkey =needhamcli .getSessionKey();
 				this.s = needhamcli.getSocketBack();
@@ -226,31 +241,34 @@ public class Client {
 				//to delete
 				//this.myCert = (X509Certificate) this.ks.getCertificate("personne1_certificat");
 				//this.myKey = (PrivateKey) this.ks.getKey("personne1_private", "monpassP1".toCharArray());
-				/*
+				
 				if(this.server_sock != null) {
+					this.s_cli.close();
 					this.server_sock.close();
 					this.server_sock = null;
 				}
-				*/
+				
+				
 				this.server_sock = new ServerSocket(new Integer(Config.get("PORT_LISTEN", "7000")));
 				
 				System.out.println("Wait for a connection...");
-				Socket s_cli = this.server_sock.accept();
+				this.s_cli = this.server_sock.accept();
 				System.out.println("Client accepted: "+s_cli.getLocalSocketAddress().toString());
 				
 				this.isServer = true;
 				Integer p = new Integer(Config.get("PORT_LISTEN","7000"));
 				needhamcli = new NeedhamShroederClient("localhost", p, s_cli,this.isServer,this.myCert,this.myKey,clientC);
 				needhamcli.bind();
-				//cli2.connect();
+
 				needhamcli.run();
 				this.in = needhamcli.getInputStream();
 				this.out = needhamcli.getOutputStream();
 				if(needhamcli.finishedWell())
 					System.out.println("Needham Shroeder exchange OK");
-				else
+				else {
 					System.out.println(needhamcli.getErrorMessage());
-				
+					break;
+				}
 				sessionkey = needhamcli.getSessionKey();
 				s_cli = needhamcli.getSocketBack();
 				

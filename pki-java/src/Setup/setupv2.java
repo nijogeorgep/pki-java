@@ -49,7 +49,7 @@ public class setupv2 {
 		int c2 = 0;
 		int choice = makeChoice("Configure CA,RA and Repository ?", "Yes", "No");
 		if (choice == 1) {
-			password = PasswordUtils.readInPassword("LDAP");
+			password = PasswordUtils.readInPassword("LDAP :");
 			if(!ldaputils.isPasswordValid(password)) {
 				System.out.println("Password wrong for the configured LDAP");
 				System.exit(1);

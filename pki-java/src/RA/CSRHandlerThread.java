@@ -81,10 +81,10 @@ public class CSRHandlerThread extends Thread implements Runnable, CommunicationH
 						
 					} catch (UnknownHostException e) {
 						this.setBytesToWrite("Unknown host CA".getBytes());
-						e.printStackTrace();
+						//e.printStackTrace();
 					} catch (IOException e) {
-						this.setBytesToWrite("'IOError CA connection".getBytes());
-						e.printStackTrace();
+						this.setBytesToWrite("IOError CA connection".getBytes());
+						//e.printStackTrace();
 					}
 					//----------------------------------------------
 				}
