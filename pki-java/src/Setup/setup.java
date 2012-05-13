@@ -1,5 +1,6 @@
 package Setup;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -41,7 +42,7 @@ public class setup {
 	
 	public setup() throws Exception {
 		prop = new Properties();
-	    InputStream is = new FileInputStream("config");
+	    InputStream is = new FileInputStream(Config.file);
 	    prop.load(is);
 	    String ldapip = Config.get("LDAP_IP","localhost");
 	    String ldapport = Config.get("LDAP_PORT","389");
@@ -180,6 +181,10 @@ public class setup {
 		
 		path = Config.get("KS_PATH_"+entity,"keystores/"+entity.toLowerCase()+"_keystore.ks");
 		pass = Config.get("KS_PASS_"+entity, "passwd");
+		File f = new File(path);
+		if (!(f.exists())) {
+			f.getParentFile().mkdirs();
+		}
 		try {
 			ks.load(new FileInputStream(path), pass.toCharArray());
 		}
@@ -222,6 +227,7 @@ public class setup {
 	  }
 	
 	public static void main(String[] args) throws Exception {
+		Config.checkConfigFile();
 		setup setup = new setup();
 		setup.run();
 	}

@@ -37,6 +37,7 @@ public class RepositoryServer {
 	
     public static void main(String[] args) {
     	Security.addProvider(new BouncyCastleProvider());
+    	Config.checkConfigFile();
         try {
             RepositoryServer s = new RepositoryServer();
             s.run();
@@ -62,7 +63,11 @@ public class RepositoryServer {
 		      this.ks.load(new FileInputStream(path), passwd.toCharArray());
 			this.caSignerCert = (X509Certificate) ks.getCertificate(Config.get("KS_ALIAS_CERT_CA_SIG","CA_SigningOnly_Certificate"));
 			this.caSignerKey = (PrivateKey) ks.getKey(Config.get("KS_ALIAS_KEY_CA_SIG", "CA_SigningOnly_Private"), Config.get("PASSWORD_CA_SIG","").toCharArray());
-		} catch (Exception e) { e.printStackTrace();}
+		} catch (Exception e) {
+	    	System.out.println("Error while trying to open the keystore: "+Config.get("KS_PATH_CA","test_keystore.ks"));
+	    	System.out.println("Error message: "+e.getMessage());
+	    	System.exit(1);
+		}
 		//--------------------
 		
 	}

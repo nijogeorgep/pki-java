@@ -32,6 +32,7 @@ public class RAServer {
 
     public static void main(String[] args) {
         try {
+        	Config.checkConfigFile();
     		String pass = PasswordUtils.readInPassword("LDAP: ");
     		if (!(ldaputils.isPasswordValid(pass))) {
     			System.out.println("Wrong password");
@@ -65,7 +66,11 @@ public class RAServer {
 		      this.ks.load(new FileInputStream(path), passwd.toCharArray());
 			this.caSignerCert = (X509Certificate) ks.getCertificate(Config.get("KS_ALIAS_CERT_CA_SIG","CA_SigningOnly_Certificate"));
 			this.caSignerKey = (PrivateKey) ks.getKey(Config.get("KS_ALIAS_KEY_CA_SIG", "CA_SigningOnly_Private"), Config.get("PASSWORD_CA_SIG","").toCharArray());
-		} catch (Exception e) { e.printStackTrace();}
+		} catch (Exception e) {
+	    	System.out.println("Error while trying to open the keystore: "+Config.get("KS_PATH_CA","test_keystore.ks"));
+	    	System.out.println("Error message: "+e.getMessage());
+	    	System.exit(1);
+		}
 	}
 	
 	//main method in wich the main thread will be jailed.

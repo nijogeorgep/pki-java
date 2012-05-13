@@ -43,6 +43,7 @@ public class CAServer {
 	
     public static void main(String[] args) throws UnrecoverableKeyException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, NoSuchProviderException, SignatureException, OperatorCreationException, CertificateException {
       Security.addProvider(new BouncyCastleProvider());
+      Config.checkConfigFile();
         try {
             CAServer s = new CAServer();
             s.run();
@@ -63,15 +64,19 @@ public class CAServer {
     this.keyserver= s.register(this.sel, SelectionKey.OP_ACCEPT); //register the server selectionkey in accept
     this.authorizedHost = Config.get("IP_RA", "localhost"); //Read in the config file the only host that will be allowed to send messages
     try {
-      this.ks = KeyStore.getInstance(KeyStore.getDefaultType()); //Je load tout les certificats en mémoire pour les avoir directement sous la main
-      String path = Config.get("KS_PATH_CA","test_keystore.ks");
-      String pass = Config.get("KS_PASS_CA","passwd");
-      this.ks.load(new FileInputStream(path), pass.toCharArray());
-      
-      //Load his certificate and private key
-      this.cakey = (PrivateKey) ks.getKey(Config.get("KS_ALIAS_KEY_CA_INTP","CA_IntermediairePeople_Private"), Config.get("PASSWORD_CA_INTP", "default_val").toCharArray());
-      this.caCert = (X509Certificate)ks.getCertificate(Config.get("KS_ALIAS_CERT_CA_INTP","CA_IntermediairePeople_Certificate"));
-    } catch (Exception e) { e.printStackTrace();}
+	      this.ks = KeyStore.getInstance(KeyStore.getDefaultType()); //Je load tout les certificats en mémoire pour les avoir directement sous la main
+	      String path = Config.get("KS_PATH_CA","test_keystore.ks");
+	      String pass = Config.get("KS_PASS_CA","passwd");
+	      this.ks.load(new FileInputStream(path), pass.toCharArray());
+	      
+	      //Load his certificate and private key
+	      this.cakey = (PrivateKey) ks.getKey(Config.get("KS_ALIAS_KEY_CA_INTP","CA_IntermediairePeople_Private"), Config.get("PASSWORD_CA_INTP", "default_val").toCharArray());
+	      this.caCert = (X509Certificate)ks.getCertificate(Config.get("KS_ALIAS_CERT_CA_INTP","CA_IntermediairePeople_Certificate"));
+    } catch (Exception e) {
+    	System.out.println("Error while trying to open the keystore: "+Config.get("KS_PATH_CA","test_keystore.ks"));
+    	System.out.println("Error message: "+e.getMessage());
+    	System.exit(1);
+    }
     String ldapip = Config.get("LDAP_IP","localhost");
     String ldapport = Config.get("LDAP_PORT","389");
     String repoip = Config.get("IP_REPOSITORY","localhost");
