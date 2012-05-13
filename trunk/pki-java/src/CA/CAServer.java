@@ -123,6 +123,7 @@ public class CAServer {
                             
                               if(this.authorizedHost.equals(h_name) || this.authorizedHost.equals(h_addr)) {//Process messages only if they come from the authorizedHost
 	                               //Read in the CSR
+                            	  	System.out.println("CSR received from: "+ client.socket().getInetAddress().toString());
 	                               PKCS10CertificationRequest csr = new PKCS10CertificationRequest( readBuff(byteread));
 	                               BigInteger bigInt = new BigInteger(String.valueOf(System.currentTimeMillis())); //The serial will be the timestamp, by this way we are none will be the same.
 	                               X509Certificate c = CSRManager.retrieveCertificateFromCSR(csr,cakey , caCert, bigInt, crlurl, ocspurl); //Call the method with his own certificate and key.

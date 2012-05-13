@@ -1,7 +1,6 @@
 
 #LDAP Configuration
 LDAP_IP=localhost
-#LDAP_IP=87.98.166.65
 LDAP_PORT=389
 LDAP_ROOT_DN=dc=pkirepository,dc=org
 LDAP_ADMIN_DN=cn=admin,dc=pkirepository,dc=org
