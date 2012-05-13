@@ -67,6 +67,8 @@ public class Client {
 			catch(FileNotFoundException e) {
 					System.out.println(this.keystorepath+" not found!");
 					System.out.println("Please run the Client setup or change keystore path in config file.");
+			    	System.out.println("Error message: "+e.getMessage());
+			    	System.exit(1);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -368,6 +370,7 @@ public class Client {
 	}
 	
 	public static void main(String[] args) {
+		Config.checkConfigFile();
 		Client cli = new Client();
 		cli.run();
 	}

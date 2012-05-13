@@ -1,0 +1,57 @@
+
+#LDAP Configuration
+LDAP_IP=localhost
+#LDAP_IP=87.98.166.65
+LDAP_PORT=389
+LDAP_ROOT_DN=dc=pkirepository,dc=org
+LDAP_ADMIN_DN=cn=admin,dc=pkirepository,dc=org
+USERS_BASE_DN=ou=intermediatePeopleCA,ou=rootCA,dc=pkirepository,dc=org
+
+#Client Config
+
+#CLIENT_CERT_ALIAS=bob_certificat
+#CLIENT_KEY_ALIAS=bob_private
+
+CLIENT_CERT_ALIAS=alice_certificat
+CLIENT_KEY_ALIAS=alice_private
+
+CLIENT_KEY_PASS=monpassP1
+KS_PATH_USER=keystores/user_keystore.ks
+KS_PASS_USER=passwd
+PORT_LISTEN=7000
+
+#Config CA
+IP_CA=localhost
+PORT_CA=7001
+KS_PASS_CA=passwd
+KS_PATH_CA=keystores/ca_keystore.ks
+
+#Config RA
+IP_RA=localhost
+PORT_RA=7002
+KS_PASS_RA=passwd
+KS_PATH_RA=keystores/ra_keystore.ks
+
+#Config Repository
+IP_REPOSITORY=localhost
+PORT_REPOSITORY=7003
+KS_PASS_REPOSITORY=passwd
+KS_PATH_REPOSITORY=keystores/repo_keystore.ks
+
+
+#Config Certificates for Keystores
+KS_ALIAS_CERT_CA=CA_Certificat
+KS_ALIAS_KEY_CA=CA_Private
+KS_ALIAS_CERT_CA_INTP=CA_IntermediairePeople_Certificate
+KS_ALIAS_KEY_CA_INTP=CA_IntermediairePeople_Private
+KS_ALIAS_CERT_CA_INTS=CA_IntermediaireServer_Certificate
+KS_ALIAS_KEY_CA_INTS=CA_IntermediaireServer_Private
+KS_ALIAS_CERT_CA_SIG=CA_SigningOnly_Certificate
+KS_ALIAS_KEY_CA_SIG=CA_SigningOnly_Private
+PASSWORD_CA_ROOT=passwordRootCA
+PASSWORD_CA_INTP=passwordPeopleCA
+PASSWORD_CA_INTS=passwordServerCA
+PASSWORD_CA_SIG=passwordSigningCert
+
+
+
