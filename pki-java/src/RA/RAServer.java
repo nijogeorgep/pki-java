@@ -112,13 +112,14 @@ public class RAServer {
                             			CSRHandlerThread cli = new CSRHandlerThread(request,this.ldappasswd);
                             			cli.start();
                             			sk.attach(cli);
-                            			System.out.println(request.getEncoded());
+                            			System.out.println("CSR received from: "+ client.socket().getInetAddress().toString());
                             		}
                             		catch(Exception e) {//CSR Parsing failed, so this is a String containing the identity for a revocation
                             			String uid = new String(received); //Recreate the String from the byte[]
                             			RevocationRequestThread cli = new RevocationRequestThread(uid, this.ldappasswd, this.caSignerCert, this.caSignerKey); //Create autonomous thread
                             			cli.start(); // Start it
                             			sk.attach(cli); //Attach the class to the client
+                            			System.out.println("Revocation request received from: "+ client.socket().getInetAddress().toString());
                             		}
                             	}
                             	else { // Attachment not null so we forward data received to the thread without touching it.

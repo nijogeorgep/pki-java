@@ -106,6 +106,7 @@ public class RepositoryServer {
                             	byte[] received = readBuff(byteread);
                             	try {
                             	OCSPReq request  = new OCSPReq(received); //Recreate the OCSPReq from the byte[] read
+                            	System.out.println("OCSP request received from: "+ client.socket().getInetAddress().toString());
                             	this.crl = ldaputils.getCRL("ou=rootCA,dc=pkirepository,dc=org", "intermediatePeopleCA");
                             	OCSPResp response = OCSPManager.generateOCSPResponse(request, this.caSignerCert, this.caSignerKey, crl); //Generate the response
                             	
