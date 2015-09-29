@@ -1,0 +1,1 @@
+This project intent to develop a basic pki infrastructure in Java. The scope of this project is to allow two persons to chat securely using the PKI
